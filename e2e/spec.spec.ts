@@ -51,16 +51,18 @@ test.describe("Item detail & spec editor", () => {
     await page.goto("/board");
     await openCard(page, "SWISH-7");
 
+    // Wait for the existing criteria to render before counting, so `before` is stable.
+    await expect(page.getByTestId("criterion").first()).toBeVisible();
     const before = await page.getByTestId("criterion").count();
     await page.getByTestId("criterion-input").fill("Given a fresh criterion, it appears in the list");
     await page.getByTestId("criterion-add").click();
-    await expect(page.getByTestId("criterion")).toHaveCount(before + 1);
     await expect(page.getByText("Given a fresh criterion, it appears in the list")).toBeVisible();
+    await expect(page.getByTestId("criterion")).toHaveCount(before + 1);
   });
 
   test("changes spec status", async ({ page }) => {
     await page.goto("/board");
-    await openCard(page, "SWISH-9"); // "Test plan per item" — DRAFT
+    await openCard(page, "SWISH-10"); // "Generate spec scaffold with AI" — DRAFT spec
     await expect(page.getByTestId("spec-status")).toHaveValue("DRAFT");
     const saved = page.waitForResponse(
       (r) => /\/spec$/.test(r.url()) && r.request().method() === "PUT"
@@ -69,7 +71,7 @@ test.describe("Item detail & spec editor", () => {
     await saved;
 
     await page.reload();
-    await openCard(page, "SWISH-9");
+    await openCard(page, "SWISH-10");
     await expect(page.getByTestId("spec-status")).toHaveValue("IN_REVIEW");
   });
 

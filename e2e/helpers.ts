@@ -1,4 +1,34 @@
-import { Page, Locator, expect } from "@playwright/test";
+import { Page, Locator, expect, APIRequestContext } from "@playwright/test";
+
+/** Data-driven test helpers: derive expected counts from the API so the suite
+ * survives the seed/roadmap growing over time. */
+export async function getProjectId(request: APIRequestContext): Promise<string> {
+  const projects = await (await request.get("/api/projects")).json();
+  return projects[0].id;
+}
+
+type ItemLite = {
+  key: string;
+  type: string;
+  assigneeId: string | null;
+  spec: { status: string } | null;
+};
+
+export async function fetchItems(
+  request: APIRequestContext,
+  params: Record<string, string> = {}
+): Promise<ItemLite[]> {
+  const projectId = await getProjectId(request);
+  const qs = new URLSearchParams({ projectId, ...params });
+  return (await request.get(`/api/items?${qs.toString()}`)).json();
+}
+
+export async function findUserId(request: APIRequestContext, name: string): Promise<string> {
+  const users = await (await request.get("/api/users")).json();
+  const u = users.find((x: { name: string }) => x.name === name);
+  if (!u) throw new Error(`user not found: ${name}`);
+  return u.id;
+}
 
 /**
  * Drag a card onto a target element using small pointer steps so @dnd-kit's

@@ -6,37 +6,34 @@ test.describe("Drag and drop", () => {
     await page.goto("/board");
     await expect(page.getByTestId("board")).toBeVisible();
 
-    // SWISH-5 "Inline-edit workflow stages" starts in "Ready" (seed). Move it to
-    // the adjacent "Spec" column (both on-screen).
-    const moving = page.locator('[data-key="SWISH-5"]');
-    const target = page.locator('[data-stage="Spec"]');
+    // Grab whatever card is at the top of the Backlog column and move it to the
+    // adjacent Spec column (both on-screen, left side).
+    const card = page.locator('[data-stage="Backlog"] [data-testid="board-card"]').first();
+    await expect(card).toBeVisible();
+    const key = await card.getAttribute("data-key");
+    expect(key).toBeTruthy();
 
-    await expect(moving).toBeVisible();
-    await expect(page.locator('[data-stage="Spec"] [data-key="SWISH-5"]')).toHaveCount(0);
-
-    await dragCardTo(page, moving, target);
-
-    await expect(page.locator('[data-stage="Spec"] [data-key="SWISH-5"]')).toBeVisible();
+    await expect(page.locator(`[data-stage="Spec"] [data-key="${key}"]`)).toHaveCount(0);
+    await dragCardTo(page, card, page.locator('[data-stage="Spec"]'));
+    await expect(page.locator(`[data-stage="Spec"] [data-key="${key}"]`)).toBeVisible();
 
     // Persists across reload.
     await page.reload();
     await expect(page.getByTestId("board")).toBeVisible();
-    await expect(page.locator('[data-stage="Spec"] [data-key="SWISH-5"]')).toBeVisible();
+    await expect(page.locator(`[data-stage="Spec"] [data-key="${key}"]`)).toBeVisible();
   });
 
   test("moving a card updates its stage in the detail drawer", async ({ page }) => {
     await page.goto("/board");
     await expect(page.getByTestId("board")).toBeVisible();
 
-    const moving = page.locator('[data-key="SWISH-11"]'); // Ready
-    const target = page.locator('[data-stage="Spec"]');
-    await dragCardTo(page, moving, target);
-    await expect(page.locator('[data-stage="Spec"] [data-key="SWISH-11"]')).toBeVisible();
+    const card = page.locator('[data-stage="Backlog"] [data-testid="board-card"]').first();
+    const key = await card.getAttribute("data-key");
+    await dragCardTo(page, card, page.locator('[data-stage="Spec"]'));
+    await expect(page.locator(`[data-stage="Spec"] [data-key="${key}"]`)).toBeVisible();
 
-    await page.locator('[data-key="SWISH-11"]').first().click();
-    await expect(page.getByTestId("item-drawer")).toBeVisible();
-    await expect(page.getByTestId("drawer-stage")).toHaveValue(/.+/);
-    // The stage select should read "Spec".
+    await page.locator(`[data-key="${key}"]`).first().click();
+    await expect(page.getByTestId("item-drawer")).toHaveAttribute("aria-hidden", "false");
     const label = await page.getByTestId("drawer-stage").locator("option:checked").textContent();
     expect(label).toBe("Spec");
   });

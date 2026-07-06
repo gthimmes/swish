@@ -1,4 +1,5 @@
 import { test, expect } from "./fixtures";
+import { fetchItems, findUserId } from "./helpers";
 
 test.describe("Backlog", () => {
   test.beforeEach(async ({ page }) => {
@@ -6,50 +7,49 @@ test.describe("Backlog", () => {
     await expect(page.getByTestId("backlog-table")).toBeVisible();
   });
 
-  test("lists all seeded items", async ({ page }) => {
-    const rows = page.getByTestId("backlog-row");
-    await expect(rows).toHaveCount(16);
+  test("lists every seeded item", async ({ page, request }) => {
+    const items = await fetchItems(request);
+    await expect(page.getByTestId("backlog-row")).toHaveCount(items.length);
   });
 
-  test("filters by type", async ({ page }) => {
+  test("filters by type", async ({ page, request }) => {
+    const bugs = await fetchItems(request, { type: "BUG" });
+    expect(bugs.length).toBeGreaterThan(0);
     await page.getByTestId("filter-type").selectOption("BUG");
-    await expect(page.getByTestId("backlog-row")).toHaveCount(1);
-    await expect(page.locator('[data-key="SWISH-12"]')).toBeVisible();
+    await expect(page.getByTestId("backlog-row")).toHaveCount(bugs.length);
   });
 
-  test("filters by text search", async ({ page }) => {
+  test("filters by text search", async ({ page, request }) => {
+    const matches = await fetchItems(request, { q: "dark mode" });
+    expect(matches.length).toBeGreaterThan(0);
     await page.getByTestId("filter-search").fill("dark mode");
-    await expect(async () => {
-      const n = await page.getByTestId("backlog-row").count();
-      expect(n).toBe(1);
-    }).toPass();
+    await expect(page.getByTestId("backlog-row")).toHaveCount(matches.length);
   });
 
-  test("filters by assignee", async ({ page }) => {
+  test("filters by assignee", async ({ page, request }) => {
+    const miraId = await findUserId(request, "Mira Patel");
+    const miraItems = await fetchItems(request, { assigneeId: miraId });
+    expect(miraItems.length).toBeGreaterThan(0);
     await page.getByTestId("filter-assignee").selectOption({ label: "Mira Patel" });
     const rows = page.getByTestId("backlog-row");
-    // Mira owns 4 seeded items; toHaveCount retries through the load.
-    await expect(rows).toHaveCount(4);
-    await expect(rows.filter({ hasText: "Mira Patel" })).toHaveCount(4);
+    await expect(rows).toHaveCount(miraItems.length);
+    await expect(rows.filter({ hasText: "Mira Patel" })).toHaveCount(miraItems.length);
   });
 
   test("sorts by priority", async ({ page }) => {
     await page.getByRole("button", { name: /Priority/ }).click();
-    // First row after sorting ascending by priority weight should be Urgent.
-    const firstRow = page.getByTestId("backlog-row").first();
-    await expect(firstRow).toContainText("Urgent");
+    // First row after ascending priority-weight sort should be Urgent.
+    await expect(page.getByTestId("backlog-row").first()).toContainText("Urgent");
   });
 
   test("inline stage change persists", async ({ page }) => {
-    const row = page.locator('[data-testid="backlog-row"][data-key="SWISH-16"]');
+    // SWISH-10 (AI spec-gen spike) starts in Backlog; move it to Done.
+    const row = page.locator('[data-testid="backlog-row"][data-key="SWISH-10"]');
     await row.getByTestId("row-stage").selectOption({ label: "Done" });
     await page.reload();
     await expect(page.getByTestId("backlog-table")).toBeVisible();
-    await expect(
-      page.locator('[data-testid="backlog-row"][data-key="SWISH-16"]').getByTestId("row-stage")
-    ).toHaveValue(/.+/);
     const label = await page
-      .locator('[data-testid="backlog-row"][data-key="SWISH-16"]')
+      .locator('[data-testid="backlog-row"][data-key="SWISH-10"]')
       .getByTestId("row-stage")
       .locator("option:checked")
       .textContent();

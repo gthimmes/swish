@@ -1,0 +1,147 @@
+// Swish — spec-first work tracking. Prisma schema (SQLite).
+// SQLite has no native enums/arrays, so enum-like fields are Strings validated
+// in the application layer (see src/lib/enums.ts).
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id        String     @id @default(cuid())
+  name      String
+  initials  String
+  color     String     @default("#6366f1")
+  createdAt DateTime   @default(now())
+  items     WorkItem[] @relation("Assignee")
+  comments  Activity[]
+}
+
+model Project {
+  id          String     @id @default(cuid())
+  key         String     @unique // e.g. "SWISH"
+  name        String
+  description String?
+  groupBy     String     @default("none") // default swimlane grouping
+  seq         Int        @default(0)       // running counter for item keys
+  createdAt   DateTime   @default(now())
+  stages      Stage[]
+  items       WorkItem[]
+  labels      Label[]
+}
+
+model Stage {
+  id        String     @id @default(cuid())
+  name      String
+  color     String     @default("#64748b")
+  category  String     @default("IN_PROGRESS") // BACKLOG | IN_PROGRESS | DONE
+  order     Int        @default(0)
+  wipLimit  Int?
+  projectId String
+  project   Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  items     WorkItem[]
+
+  @@index([projectId])
+}
+
+model WorkItem {
+  id          String   @id @default(cuid())
+  key         String   @unique // e.g. "SWISH-42"
+  title       String
+  type        String   @default("STORY") // STORY | TASK | BUG | SPIKE | EPIC
+  priority    String   @default("MEDIUM") // URGENT | HIGH | MEDIUM | LOW
+  estimate    Int?
+  rank        Float    @default(1000)
+  description String?
+
+  projectId  String
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  stageId    String
+  stage      Stage    @relation(fields: [stageId], references: [id])
+  assigneeId String?
+  assignee   User?    @relation("Assignee", fields: [assigneeId], references: [id])
+
+  // self-referential epic grouping
+  epicId   String?
+  epic     WorkItem?  @relation("EpicChildren", fields: [epicId], references: [id])
+  children WorkItem[] @relation("EpicChildren")
+
+  labels   Label[]
+  spec     Spec?
+  activity Activity[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([stageId])
+}
+
+model Label {
+  id        String     @id @default(cuid())
+  name      String
+  color     String     @default("#94a3b8")
+  projectId String
+  project   Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  items     WorkItem[]
+
+  @@index([projectId])
+}
+
+model Spec {
+  id         String   @id @default(cuid())
+  workItemId String   @unique
+  workItem   WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+
+  problem  String @default("")
+  goals    String @default("")
+  nonGoals String @default("")
+  approach String @default("")
+  risks    String @default("")
+  status   String @default("DRAFT") // DRAFT | IN_REVIEW | APPROVED
+
+  criteria AcceptanceCriterion[]
+  tests    TestPlanItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AcceptanceCriterion {
+  id     String  @id @default(cuid())
+  specId String
+  spec   Spec    @relation(fields: [specId], references: [id], onDelete: Cascade)
+  text   String
+  done   Boolean @default(false)
+  order  Int     @default(0)
+
+  @@index([specId])
+}
+
+model TestPlanItem {
+  id     String @id @default(cuid())
+  specId String
+  spec   Spec   @relation(fields: [specId], references: [id], onDelete: Cascade)
+  text   String
+  status String @default("TODO") // TODO | PASS | FAIL
+  order  Int    @default(0)
+
+  @@index([specId])
+}
+
+model Activity {
+  id         String   @id @default(cuid())
+  workItemId String
+  workItem   WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id])
+  kind       String   @default("comment") // comment | event
+  body       String
+  createdAt  DateTime @default(now())
+
+  @@index([workItemId])
+}

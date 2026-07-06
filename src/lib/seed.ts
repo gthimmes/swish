@@ -875,13 +875,25 @@ export async function seedDatabase(prisma: PrismaClient) {
     title: "Command palette (Cmd-K)",
     type: "STORY",
     priority: "MEDIUM",
-    stage: "Ready",
+    stage: "Done",
     assignee: dax,
     estimate: 3,
     epicId: epicPolish.id,
     labels: ["frontend"],
     rank: 1010,
     description: "Jump to any item, run any action, switch views — all from the keyboard.",
+    spec: {
+      status: "APPROVED",
+      problem: "Power users shouldn't hunt through the sidebar. One shortcut should reach anything.",
+      goals: "Cmd/Ctrl+K opens a palette to fuzzy-search items, jump to any view, and run actions.",
+      approach: "Global key listener; fuzzy subsequence match over views/actions/items; arrow+Enter to run.",
+      criteria: [
+        { text: "Cmd/Ctrl+K opens; Escape closes", done: true },
+        { text: "Fuzzy-search jumps to a view and opens an item", done: true },
+        { text: "Runs the create-item action", done: true },
+      ],
+      tests: [{ text: "E2E: open/close, navigate, open item, run action", status: "PASS" }],
+    },
   });
   await makeItem({
     title: "Bulk edit & multi-select",

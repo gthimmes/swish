@@ -7,6 +7,7 @@ import { useWorkspace } from "./workspace";
 const NAV = [
   { href: "/board", label: "Board", icon: BoardIcon },
   { href: "/backlog", label: "Backlog", icon: ListIcon },
+  { href: "/roadmap", label: "Roadmap", icon: RoadmapIcon },
   { href: "/specs", label: "Specs", icon: SpecIcon },
   { href: "/settings", label: "Workflow", icon: GearIcon },
 ];
@@ -117,6 +118,15 @@ function ListIcon({ active }: { active?: boolean }) {
   return (
     <svg {...iconProps(active)}>
       <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
+    </svg>
+  );
+}
+function RoadmapIcon({ active }: { active?: boolean }) {
+  return (
+    <svg {...iconProps(active)}>
+      <path d="M4 6h10M4 12h16M4 18h7" />
+      <circle cx="18" cy="6" r="1.6" />
+      <circle cx="14" cy="18" r="1.6" />
     </svg>
   );
 }

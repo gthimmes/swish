@@ -704,16 +704,41 @@ export async function seedDatabase(prisma: PrismaClient) {
     },
   });
   await makeItem({
-    title: "Roadmap timeline (Gantt-style) view",
+    title: "Roadmap view (epics, progress & stage flow)",
     type: "STORY",
     priority: "MEDIUM",
+    stage: "Done",
+    assignee: glenn,
+    estimate: 5,
+    epicId: epicPlanning.id,
+    labels: ["frontend"],
+    rank: 820,
+    description: "A first-class Roadmap page: epics with completion %, a stage-distribution bar, and grouped stories.",
+    spec: {
+      status: "APPROVED",
+      problem: "You asked to see what's next. The board is per-item; leadership needs an epic-level view of progress.",
+      goals: "Epics ordered by priority with % done, a per-stage distribution bar, and clickable child stories.",
+      nonGoals: "A date/time axis with dependencies — tracked separately as a timeline view.",
+      approach: "New /roadmap page; group items by epic; compute done from stage category; open the drawer on click.",
+      criteria: [
+        { text: "Each epic shows completion % and a stage-distribution bar", done: true },
+        { text: "Child stories are grouped under their epic and open the drawer", done: true },
+        { text: "Standalone (epic-less) work has its own section", done: true },
+      ],
+      tests: [{ text: "E2E: renders a section per epic; 100% for a delivered epic; story opens drawer", status: "PASS" }],
+    },
+  });
+  await makeItem({
+    title: "Timeline view with dates & dependencies",
+    type: "STORY",
+    priority: "LOW",
     stage: "Backlog",
     assignee: null,
     estimate: 5,
     epicId: epicPlanning.id,
     labels: ["frontend"],
-    rank: 820,
-    description: "See epics and stories on a time axis — the exact view you asked for, as a first-class page.",
+    rank: 825,
+    description: "A true time-axis Gantt: schedule epics/stories on a calendar with dependency links.",
   });
   await makeItem({
     title: "Cycle analytics: burndown & velocity",

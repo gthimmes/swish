@@ -23,6 +23,14 @@ export async function fetchItems(
   return (await request.get(`/api/items?${qs.toString()}`)).json();
 }
 
+export async function getProject(request: APIRequestContext): Promise<{
+  id: string;
+  stages: { id: string; name: string; category: string; wipLimit: number | null }[];
+}> {
+  const id = await getProjectId(request);
+  return (await request.get(`/api/projects/${id}`)).json();
+}
+
 export async function findUserId(request: APIRequestContext, name: string): Promise<string> {
   const users = await (await request.get("/api/users")).json();
   const u = users.find((x: { name: string }) => x.name === name);

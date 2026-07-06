@@ -762,7 +762,32 @@ export async function seedDatabase(prisma: PrismaClient) {
     epicId: epicPlanning.id,
     labels: ["frontend", "backend"],
     rank: 840,
-    description: "Kanban-style flow health so teams can improve without guessing.",
+    description: "Cycle time and WIP aging need historical stage-transition timestamps — not yet captured.",
+  });
+  await makeItem({
+    title: "Insights dashboard (distribution, throughput, spec coverage)",
+    type: "STORY",
+    priority: "MEDIUM",
+    stage: "Done",
+    assignee: glenn,
+    estimate: 3,
+    epicId: epicPlanning.id,
+    labels: ["frontend"],
+    rank: 845,
+    description: "An /insights page with stat tiles, stage/type/priority distributions, spec coverage, points, and WIP-vs-limits.",
+    spec: {
+      status: "APPROVED",
+      problem: "Teams need at-a-glance health: what's done, where work sits, and how strong the specs are.",
+      goals: "Stat tiles (done/in-progress/backlog), distributions, spec coverage donut, points, and WIP vs limits.",
+      nonGoals: "Cycle time and WIP aging (need stage-transition history) — tracked under Flow metrics.",
+      approach: "Compute everything client-side from the items + stage categories; inline bar/donut charts, no deps.",
+      criteria: [
+        { text: "Stat tiles show total / done / in-progress / backlog", done: true },
+        { text: "Distributions by stage, type, and priority render", done: true },
+        { text: "Spec coverage donut and WIP-vs-limits render", done: true },
+      ],
+      tests: [{ text: "E2E: totals match the API; every panel renders; WIP flags the limit", status: "PASS" }],
+    },
   });
   await makeItem({
     title: "Saved views & filters",

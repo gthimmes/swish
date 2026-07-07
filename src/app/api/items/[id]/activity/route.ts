@@ -14,6 +14,7 @@ export async function POST(req: Request, { params }: Ctx) {
         kind: "comment",
         body: body.body,
         userId: body.userId ?? null,
+        parentId: body.parentId ?? null,
       },
       include: { user: true },
     })

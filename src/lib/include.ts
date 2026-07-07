@@ -31,7 +31,7 @@ export const itemDetailInclude = {
   ...itemInclude,
   children: { select: { id: true, key: true, title: true, stageId: true } },
   activity: {
-    orderBy: { createdAt: "desc" },
+    orderBy: { createdAt: "asc" },
     include: { user: true },
   },
 } as const;

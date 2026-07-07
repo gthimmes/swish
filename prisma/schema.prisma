@@ -157,5 +157,11 @@ model Activity {
   body       String
   createdAt  DateTime @default(now())
 
+  // threading: a comment may reply to another comment
+  parentId String?
+  parent   Activity?  @relation("Thread", fields: [parentId], references: [id], onDelete: Cascade)
+  replies  Activity[] @relation("Thread")
+
   @@index([workItemId])
+  @@index([parentId])
 }

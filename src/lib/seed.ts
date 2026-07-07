@@ -580,13 +580,26 @@ export async function seedDatabase(prisma: PrismaClient) {
     title: "@mentions & threaded comments",
     type: "STORY",
     priority: "MEDIUM",
-    stage: "Backlog",
-    assignee: null,
+    stage: "Done",
+    assignee: mira,
     estimate: 5,
     epicId: epicCollab.id,
     labels: ["frontend", "backend"],
     rank: 630,
-    description: "The activity feed exists; add real comment threads and @mentions that notify.",
+    description: "Comment threads with replies, plus @mention autocomplete and highlighting.",
+    spec: {
+      status: "APPROVED",
+      problem: "A flat activity log isn't a conversation. Teams need replies and a way to pull people in.",
+      goals: "@mention autocomplete + highlighting; reply to a comment to form a thread.",
+      nonGoals: "Mention notifications/inbox — tracked under Notifications & activity inbox.",
+      approach: "Activity gains a self-referential parentId; a Composer with @ autocomplete; client builds the tree.",
+      criteria: [
+        { text: "@mention autocomplete inserts a handle", done: true },
+        { text: "Mentions are highlighted in rendered comments", done: true },
+        { text: "Reply to a comment and it threads underneath", done: true },
+      ],
+      tests: [{ text: "E2E: seeded thread, autocomplete, add mention, reply", status: "PASS" }],
+    },
   });
   await makeItem({
     title: "Notifications & activity inbox",
@@ -968,6 +981,28 @@ export async function seedDatabase(prisma: PrismaClient) {
     rank: 1040,
     description: "Let teams add their own typed fields (select, number, URL) and group/filter by them.",
   });
+
+  // A sample comment thread (with an @mention + reply) for the demo.
+  const dragItem = await prisma.workItem.findFirst({ where: { projectId: project.id, key: "SWISH-3" } });
+  if (dragItem) {
+    const c = await prisma.activity.create({
+      data: {
+        workItemId: dragItem.id,
+        kind: "comment",
+        userId: mira.id,
+        body: "@Dax can you double-check the keyboard-drag path before we call this done?",
+      },
+    });
+    await prisma.activity.create({
+      data: {
+        workItemId: dragItem.id,
+        kind: "comment",
+        userId: dax.id,
+        parentId: c.id,
+        body: "On it — I'll add an arrow-key test and ping @Mira when it's green.",
+      },
+    });
+  }
 
   await prisma.project.update({ where: { id: project.id }, data: { seq } });
 

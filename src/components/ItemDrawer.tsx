@@ -8,6 +8,7 @@ import { ITEM_TYPES, PRIORITIES, TYPE_META, PRIORITY_META } from "@/lib/enums";
 import type { WorkItemDetail } from "@/lib/types";
 import { Avatar, LabelChip, TypeBadge } from "./ui";
 import { SpecEditor } from "./SpecEditor";
+import { ActivityThread } from "./Comments";
 
 export function ItemDrawer() {
   const { openItemId, openItem } = useWorkspace();
@@ -183,7 +184,11 @@ function DrawerContent({ id }: { id: string }) {
         </div>
 
         <div className="px-5 py-4">
-          {tab === "spec" ? <SpecEditor item={item} onChanged={revalidate} /> : <ActivityFeed item={item} onChanged={() => mutateItem()} />}
+          {tab === "spec" ? (
+            <SpecEditor item={item} onChanged={revalidate} />
+          ) : (
+            <ActivityThread item={item} users={users} onChanged={() => mutateItem()} />
+          )}
         </div>
       </div>
     </>
@@ -293,55 +298,6 @@ function LabelsEditor({ item, onChange }: { item: WorkItemDetail; onChange: (ids
   );
 }
 
-function ActivityFeed({ item, onChanged }: { item: WorkItemDetail; onChanged: () => void }) {
-  const [body, setBody] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  async function comment() {
-    if (!body.trim()) return;
-    setBusy(true);
-    try {
-      await api(`/api/items/${item.id}/activity`, "POST", { body: body.trim() });
-      setBody("");
-      onChanged();
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <div data-testid="activity-feed">
-      <div className="mb-4 flex gap-2">
-        <input
-          className="input"
-          data-testid="comment-input"
-          placeholder="Leave a comment…"
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && comment()}
-        />
-        <button className="btn btn-outline" disabled={busy} onClick={comment}>
-          Send
-        </button>
-      </div>
-      <ul className="flex flex-col gap-3">
-        {item.activity.map((a) => (
-          <li key={a.id} className="flex gap-2.5 text-sm">
-            <Avatar user={a.user} size={22} />
-            <div>
-              <div style={{ color: a.kind === "event" ? "var(--text-faint)" : "var(--text)" }}>
-                {a.kind === "event" ? <em>{a.body}</em> : a.body}
-              </div>
-              <div className="text-[11px]" style={{ color: "var(--text-faint)" }}>
-                {a.user?.name ?? "system"} · {new Date(a.createdAt).toLocaleString()}
-              </div>
-            </div>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
 
 function DeleteButton({ onConfirm }: { onConfirm: () => void }) {
   const [confirm, setConfirm] = useState(false);

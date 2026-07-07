@@ -93,6 +93,7 @@ export type Activity = {
   kind: string;
   body: string;
   createdAt: string;
+  parentId: string | null;
   user: User | null;
 };
 

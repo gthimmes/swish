@@ -45,7 +45,11 @@ test.describe("Backlog", () => {
   test("inline stage change persists", async ({ page }) => {
     // SWISH-10 (AI spec-gen spike) starts in Backlog; move it to Done.
     const row = page.locator('[data-testid="backlog-row"][data-key="SWISH-10"]');
+    const saved = page.waitForResponse(
+      (r) => /\/api\/items\//.test(r.url()) && r.request().method() === "PATCH"
+    );
     await row.getByTestId("row-stage").selectOption({ label: "Done" });
+    await saved;
     await page.reload();
     await expect(page.getByTestId("backlog-table")).toBeVisible();
     const label = await page

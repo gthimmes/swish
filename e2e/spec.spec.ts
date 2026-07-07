@@ -18,10 +18,10 @@ test.describe("Item detail & spec editor", () => {
 
     const marker = "APPROACH EDITED BY PLAYWRIGHT";
     const approach = page.getByTestId("spec-approach");
+    // Wait for the debounced PUT to actually land before reloading.
+    const saved = page.waitForResponse((r) => /\/spec$/.test(r.url()) && r.request().method() === "PUT");
     await approach.fill(marker);
-    // Wait for debounced save.
-    await expect(page.getByTestId("save-indicator")).toHaveText("Saved");
-    await page.waitForTimeout(700);
+    await saved;
 
     await page.reload();
     await openCard(page, "SWISH-3");

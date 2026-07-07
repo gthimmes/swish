@@ -71,6 +71,18 @@ export async function seedDatabase(prisma: PrismaClient) {
     labels[l.name] = await prisma.label.create({ data: { ...l, projectId: project.id } });
   }
 
+  // Starter saved views
+  const viewDefs = [
+    { name: "Open bugs", groupBy: "none", filters: { type: "BUG" }, order: 0 },
+    { name: "Urgent work", groupBy: "none", filters: { priority: "URGENT" }, order: 1 },
+    { name: "By assignee", groupBy: "assignee", filters: {}, order: 2 },
+  ];
+  for (const v of viewDefs) {
+    await prisma.savedView.create({
+      data: { projectId: project.id, name: v.name, groupBy: v.groupBy, filters: JSON.stringify(v.filters), order: v.order },
+    });
+  }
+
   let seq = 0;
   const nextKey = () => `SWISH-${++seq}`;
 
@@ -793,13 +805,25 @@ export async function seedDatabase(prisma: PrismaClient) {
     title: "Saved views & filters",
     type: "STORY",
     priority: "MEDIUM",
-    stage: "Backlog",
-    assignee: null,
+    stage: "Done",
+    assignee: dax,
     estimate: 3,
     epicId: epicPlanning.id,
     labels: ["frontend"],
     rank: 850,
     description: "Name and pin common filter+grouping combinations (e.g. 'My urgent bugs').",
+    spec: {
+      status: "APPROVED",
+      problem: "Re-applying the same filter+grouping every session is friction. Teams want one-click views.",
+      goals: "Save the current group-by + filters under a name; apply or delete from the board toolbar.",
+      approach: "SavedView model per project; POST/GET/DELETE API; a Views menu on the board applies config.",
+      criteria: [
+        { text: "Save the current view with a name", done: true },
+        { text: "Apply a saved view to restore grouping + filters", done: true },
+        { text: "Delete a saved view", done: true },
+      ],
+      tests: [{ text: "E2E: list/apply (filter & grouping)/save/delete views", status: "PASS" }],
+    },
   });
 
   // ---- EPIC: Integrations ----

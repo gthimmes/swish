@@ -6,6 +6,7 @@ import { BoardView } from "@/components/board/BoardView";
 import { PageHeader } from "@/components/PageHeader";
 import { Filters, EMPTY_FILTERS, type FilterState } from "@/components/Filters";
 import { NewItemButton } from "@/components/NewItemButton";
+import { SavedViews } from "@/components/SavedViews";
 import { GROUP_BY, type GroupBy } from "@/lib/enums";
 import { api } from "@/lib/client";
 
@@ -35,6 +36,11 @@ export default function BoardPage() {
     }
   }
 
+  function applyView(g: GroupBy, f: FilterState) {
+    setGroupBy(g);
+    setFilters(f);
+  }
+
   return (
     <>
       <PageHeader title="Board">
@@ -56,6 +62,7 @@ export default function BoardPage() {
           </select>
         </div>
         <Filters value={filters} onChange={setFilters} />
+        <SavedViews groupBy={groupBy} filters={filters} onApply={applyView} />
         <NewItemButton />
       </PageHeader>
 

@@ -32,6 +32,20 @@ model Project {
   stages      Stage[]
   items       WorkItem[]
   labels      Label[]
+  views       SavedView[]
+}
+
+model SavedView {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name      String
+  groupBy   String   @default("none")
+  filters   String   @default("{}") // JSON-encoded FilterState
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([projectId])
 }
 
 model Stage {

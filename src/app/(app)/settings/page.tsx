@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import useSWR from "swr";
 import { useWorkspace } from "@/components/workspace";
-import { api } from "@/lib/client";
+import { api, fetcher } from "@/lib/client";
 import { PageHeader } from "@/components/PageHeader";
-import { STAGE_CATEGORIES, CATEGORY_META, type StageCategory } from "@/lib/enums";
-import type { Stage } from "@/lib/types";
+import { STAGE_CATEGORIES, CATEGORY_META, FIELD_TYPES, FIELD_TYPE_META, type StageCategory } from "@/lib/enums";
+import type { CustomField, Stage } from "@/lib/types";
 
 const SWATCHES = ["#64748b", "#a855f7", "#0ea5e9", "#3b82f6", "#eab308", "#22c55e", "#ef4444", "#ec4899", "#f59e0b", "#14b8a6"];
 
@@ -158,9 +159,103 @@ export default function SettingsPage() {
               + Add stage
             </button>
           </div>
+
+          {project && <CustomFieldsManager projectId={project.id} />}
         </div>
       </div>
     </>
+  );
+}
+
+function CustomFieldsManager({ projectId }: { projectId: string }) {
+  const { data: fields, mutate } = useSWR<CustomField[]>(`/api/projects/${projectId}/fields`, fetcher);
+  const [name, setName] = useState("");
+  const [type, setType] = useState("TEXT");
+  const [options, setOptions] = useState("");
+
+  async function add() {
+    if (!name.trim()) return;
+    await api(`/api/projects/${projectId}/fields`, "POST", {
+      name: name.trim(),
+      type,
+      options: type === "SELECT" ? options.split(",").map((s) => s.trim()).filter(Boolean) : [],
+    });
+    setName("");
+    setOptions("");
+    setType("TEXT");
+    mutate();
+  }
+  async function remove(id: string) {
+    await api(`/api/fields/${id}`, "DELETE");
+    mutate();
+  }
+
+  return (
+    <div className="mt-10" data-testid="fields-manager">
+      <h2 className="mb-1 text-base font-semibold">Custom fields</h2>
+      <p className="mb-4 text-xs" style={{ color: "var(--text-faint)" }}>
+        Add your own typed fields (text, number, select, URL). They appear on every item's detail panel.
+      </p>
+
+      <div className="flex flex-col gap-2" data-testid="field-list">
+        {(fields ?? []).map((f) => (
+          <div key={f.id} className="card flex items-center gap-3 p-3" data-testid="field-row" data-name={f.name}>
+            <span className="font-medium">{f.name}</span>
+            <span className="chip" style={{ background: "var(--bg-elev-2)", color: "var(--text-dim)" }}>
+              {FIELD_TYPE_META[f.type as keyof typeof FIELD_TYPE_META]?.label ?? f.type}
+            </span>
+            {f.type === "SELECT" && (
+              <span className="text-xs" style={{ color: "var(--text-faint)" }}>
+                {(JSON.parse(f.options) as string[]).join(", ")}
+              </span>
+            )}
+            <button
+              className="btn btn-ghost ml-auto px-2 py-1"
+              style={{ color: "var(--danger)" }}
+              aria-label="Delete field"
+              data-testid="field-delete"
+              onClick={() => remove(f.id)}
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+        {fields && fields.length === 0 && (
+          <p className="text-xs" style={{ color: "var(--text-faint)" }}>
+            No custom fields yet.
+          </p>
+        )}
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        <input
+          className="input flex-1"
+          data-testid="field-name"
+          placeholder="Field name (e.g. Team)"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+        <select className="input w-auto" data-testid="field-type" value={type} onChange={(e) => setType(e.target.value)}>
+          {FIELD_TYPES.map((t) => (
+            <option key={t} value={t}>
+              {FIELD_TYPE_META[t].label}
+            </option>
+          ))}
+        </select>
+        {type === "SELECT" && (
+          <input
+            className="input flex-1"
+            data-testid="field-options"
+            placeholder="Options, comma-separated"
+            value={options}
+            onChange={(e) => setOptions(e.target.value)}
+          />
+        )}
+        <button className="btn btn-primary" data-testid="add-field" disabled={!name.trim()} onClick={add}>
+          + Add field
+        </button>
+      </div>
+    </div>
   );
 }
 

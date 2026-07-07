@@ -45,6 +45,15 @@ export type ProjectSummary = {
 
 export type EpicRef = { id: string; key: string; title: string };
 
+export type CustomField = {
+  id: string;
+  projectId: string;
+  name: string;
+  type: string; // TEXT | NUMBER | SELECT | URL
+  options: string; // JSON array
+  order: number;
+};
+
 export type Cycle = {
   id: string;
   projectId: string;
@@ -122,5 +131,6 @@ export type WorkItemDetail = Omit<WorkItem, "spec" | "blockedBy"> & {
   children: { id: string; key: string; title: string; stageId: string }[];
   blocks: { id: string; blocked: DepRef }[];
   blockedBy: { id: string; blocker: DepRef }[];
+  fieldValues: { id: string; fieldId: string; value: string }[];
   activity: Activity[];
 };

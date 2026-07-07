@@ -40,6 +40,7 @@ const depItemSelect = {
 export const itemDetailInclude = {
   ...itemInclude,
   children: { select: { id: true, key: true, title: true, stageId: true } },
+  fieldValues: { select: { id: true, fieldId: true, value: true } },
   blocks: { select: { id: true, blocked: depItemSelect } },
   blockedBy: { select: { id: true, blocker: depItemSelect } },
   activity: {

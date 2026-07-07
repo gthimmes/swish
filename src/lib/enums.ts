@@ -19,6 +19,16 @@ export type TestStatus = (typeof TEST_STATUSES)[number];
 export const GROUP_BY = ["none", "assignee", "epic", "priority", "type"] as const;
 export type GroupBy = (typeof GROUP_BY)[number];
 
+export const FIELD_TYPES = ["TEXT", "NUMBER", "SELECT", "URL"] as const;
+export type FieldType = (typeof FIELD_TYPES)[number];
+
+export const FIELD_TYPE_META: Record<FieldType, { label: string }> = {
+  TEXT: { label: "Text" },
+  NUMBER: { label: "Number" },
+  SELECT: { label: "Select" },
+  URL: { label: "URL" },
+};
+
 export const TYPE_META: Record<ItemType, { label: string; icon: string; color: string }> = {
   STORY: { label: "Story", icon: "◆", color: "#22c55e" },
   TASK: { label: "Task", icon: "✔", color: "#3b82f6" },

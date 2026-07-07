@@ -34,6 +34,33 @@ model Project {
   labels      Label[]
   views       SavedView[]
   cycles      Cycle[]
+  customFields CustomField[]
+}
+
+model CustomField {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name      String
+  type      String   @default("TEXT") // TEXT | NUMBER | SELECT | URL
+  options   String   @default("[]")   // JSON array of choices for SELECT
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  values    CustomFieldValue[]
+
+  @@index([projectId])
+}
+
+model CustomFieldValue {
+  id      String      @id @default(cuid())
+  fieldId String
+  itemId  String
+  value   String
+  field   CustomField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  item    WorkItem    @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@unique([fieldId, itemId])
+  @@index([itemId])
 }
 
 model Cycle {
@@ -106,6 +133,8 @@ model WorkItem {
   // dependencies: this item may block others and be blocked by others
   blocks    Dependency[] @relation("ItemBlocks")
   blockedBy Dependency[] @relation("ItemBlockedBy")
+
+  fieldValues CustomFieldValue[]
 
   labels   Label[]
   spec     Spec?

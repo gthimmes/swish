@@ -1049,14 +1049,27 @@ export async function seedDatabase(prisma: PrismaClient) {
   await makeItem({
     title: "Custom fields per project",
     type: "STORY",
-    priority: "LOW",
-    stage: "Backlog",
-    assignee: null,
+    priority: "MEDIUM",
+    stage: "Done",
+    assignee: glenn,
     estimate: 5,
     epicId: epicPolish.id,
     labels: ["backend", "frontend"],
     rank: 1040,
-    description: "Let teams add their own typed fields (select, number, URL) and group/filter by them.",
+    description: "Per-project typed fields (text/number/select/URL); values edited on each item's detail panel.",
+    spec: {
+      status: "APPROVED",
+      problem: "Every team tracks something Swish doesn't model natively — a component, a doc link, a risk score.",
+      goals: "Define typed fields per project (text/number/select/URL) and set per-item values.",
+      nonGoals: "Grouping/filtering the board by a custom field (a follow-up).",
+      approach: "CustomField + CustomFieldValue models; manage in Workflow settings; edit on the item drawer.",
+      criteria: [
+        { text: "Define, list, and delete custom fields in settings", done: true },
+        { text: "Edit per-item values (text/number/select/URL) in the drawer", done: true },
+        { text: "Values persist per item", done: true },
+      ],
+      tests: [{ text: "E2E: add/delete field, edit select + URL values, persistence", status: "PASS" }],
+    },
   });
 
   // Schedule a handful of items so the timeline is populated (fixed dates for
@@ -1113,6 +1126,21 @@ export async function seedDatabase(prisma: PrismaClient) {
       await prisma.dependency.create({ data: { blockerId: blocker.id, blockedId: blocked.id } });
     }
   }
+
+  // Custom fields + a few values.
+  const teamField = await prisma.customField.create({
+    data: { projectId: project.id, name: "Team", type: "SELECT", options: JSON.stringify(["Platform", "Frontend", "Infra"]), order: 0 },
+  });
+  const docField = await prisma.customField.create({
+    data: { projectId: project.id, name: "Design doc", type: "URL", options: "[]", order: 1 },
+  });
+  async function setFieldVal(key: string, fieldId: string, value: string) {
+    const it = await prisma.workItem.findFirst({ where: { projectId: project.id, key } });
+    if (it) await prisma.customFieldValue.create({ data: { itemId: it.id, fieldId, value } });
+  }
+  await setFieldVal("SWISH-3", teamField.id, "Frontend");
+  await setFieldVal("SWISH-12", teamField.id, "Platform");
+  await setFieldVal("SWISH-3", docField.id, "https://docs.swish.dev/drag-and-drop");
 
   // A sample comment thread (with an @mention + reply) for the demo.
   const dragItem = await prisma.workItem.findFirst({ where: { projectId: project.id, key: "SWISH-3" } });

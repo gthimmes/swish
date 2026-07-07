@@ -12,6 +12,7 @@ import { SpecEditor } from "./SpecEditor";
 import { ActivityThread } from "./Comments";
 import { AgentBriefButton } from "./AgentBrief";
 import { DependenciesSection } from "./Dependencies";
+import { CustomFieldsSection } from "./CustomFields";
 
 export function ItemDrawer() {
   const { openItemId, openItem } = useWorkspace();
@@ -197,6 +198,9 @@ function DrawerContent({ id }: { id: string }) {
         <div className="px-5 pb-4">
           <DescriptionField item={item} onSave={(description) => patch({ description })} />
         </div>
+
+        {/* Custom fields */}
+        <CustomFieldsSection item={item} onChanged={revalidate} />
 
         {/* Dependencies */}
         <DependenciesSection item={item} onChanged={revalidate} />

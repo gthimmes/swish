@@ -686,14 +686,26 @@ export async function seedDatabase(prisma: PrismaClient) {
   await makeItem({
     title: "Agent hand-off: export a spec as an AI-ready task packet",
     type: "STORY",
-    priority: "MEDIUM",
-    stage: "Backlog",
-    assignee: null,
+    priority: "HIGH",
+    stage: "Done",
+    assignee: mira,
     estimate: 5,
     epicId: epicAI.id,
-    labels: ["backend"],
+    labels: ["frontend"],
     rank: 730,
-    description: "One button produces a self-contained brief (spec + criteria + tests + context) for a coding agent.",
+    description: "One button produces a self-contained markdown brief (spec + criteria + tests + context) for a coding agent.",
+    spec: {
+      status: "APPROVED",
+      problem: "Swish's whole premise is that a precise spec drives precise AI work — but the spec lived only in the UI.",
+      goals: "One click turns an item into a copyable/downloadable markdown packet: metadata, spec, criteria, test plan.",
+      approach: "buildAgentBrief() renders the WorkItemDetail as markdown; a modal offers Copy and Download .md.",
+      criteria: [
+        { text: "Brief includes metadata + every spec section", done: true },
+        { text: "Acceptance criteria render as a checklist; tests with status", done: true },
+        { text: "Copy and Download .md; works even without a spec", done: true },
+      ],
+      tests: [{ text: "E2E: brief content, copy confirm, no-spec fallback", status: "PASS" }],
+    },
   });
   await makeItem({
     title: "Spec → draft PR description & checklist",

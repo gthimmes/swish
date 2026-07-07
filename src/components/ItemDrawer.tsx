@@ -10,6 +10,7 @@ import { toDateInput } from "@/lib/dates";
 import { Avatar, LabelChip, TypeBadge } from "./ui";
 import { SpecEditor } from "./SpecEditor";
 import { ActivityThread } from "./Comments";
+import { AgentBriefButton } from "./AgentBrief";
 
 export function ItemDrawer() {
   const { openItemId, openItem } = useWorkspace();
@@ -78,6 +79,7 @@ function DrawerContent({ id }: { id: string }) {
           {item.key}
         </span>
         <div className="ml-auto flex items-center gap-1">
+          <AgentBriefButton item={item} />
           <DeleteButton
             onConfirm={async () => {
               await api(`/api/items/${id}`, "DELETE");

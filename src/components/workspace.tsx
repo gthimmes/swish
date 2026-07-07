@@ -10,6 +10,7 @@ type WorkspaceCtx = {
   project: Project | undefined;
   projectId: string | undefined;
   users: User[];
+  currentUser: User | undefined;
   loading: boolean;
   reloadProject: () => void;
   selectProject: (id: string) => void;
@@ -44,6 +45,8 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       project,
       projectId,
       users: users ?? [],
+      // Single-workspace v1: designate the "you" user (defaults to Glenn).
+      currentUser: (users ?? []).find((u) => u.name === "Glenn Thimmes") ?? users?.[0],
       loading: !projects || !project,
       reloadProject: () => mutateProject(),
       selectProject: (id) => setParam("project", id),

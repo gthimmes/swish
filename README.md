@@ -10,6 +10,8 @@
 - **Swimlanes as a first-class toggle** — group the board instantly by assignee, epic, priority, or type. Drag a card across lanes to reassign that dimension.
 - **Drag-and-drop** — move cards between stages and reorder within a column (accessible `@dnd-kit`, optimistic + persisted).
 - **Structured specs** — every item can carry a spec with Problem, Goals, Non-Goals, Approach, and Risks; a checkable **acceptance criteria** list; and a **test plan** with pass/fail tracking. Status flows Draft → In Review → Approved.
+- **Inbox** — a per-user view of open items assigned to you and comments that @mention you, with a sidebar count badge.
+- **Timeline** — a mini-Gantt: items with start/due dates laid on a month axis grouped by epic, with overdue flags and a today line.
 - **Roadmap view** — epics ordered by priority with completion %, a per-stage distribution bar, and grouped stories.
 - **Insights dashboard** — stat tiles, stage/type/priority distributions, spec-coverage donut, estimate-points progress, and WIP-vs-limits.
 - **Command palette (⌘K)** — fuzzy-search items, jump to any view, and run actions from the keyboard.

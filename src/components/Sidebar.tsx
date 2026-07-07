@@ -2,9 +2,12 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
+import useSWR from "swr";
 import { useWorkspace } from "./workspace";
+import { fetcher } from "@/lib/client";
 
 const NAV = [
+  { href: "/inbox", label: "Inbox", icon: InboxIcon },
   { href: "/board", label: "Board", icon: BoardIcon },
   { href: "/backlog", label: "Backlog", icon: ListIcon },
   { href: "/roadmap", label: "Roadmap", icon: RoadmapIcon },
@@ -67,6 +70,7 @@ export function Sidebar() {
             >
               <Icon active={active} />
               {item.label}
+              {item.href === "/inbox" && <InboxBadge />}
             </Link>
           );
         })}
@@ -105,6 +109,33 @@ function iconProps(active?: boolean) {
     strokeLinecap: "round" as const,
     strokeLinejoin: "round" as const,
   };
+}
+
+function InboxBadge() {
+  const { project, currentUser } = useWorkspace();
+  const key =
+    project && currentUser ? `/api/inbox?projectId=${project.id}&userId=${currentUser.id}` : null;
+  const { data } = useSWR<{ assigned: unknown[]; mentions: unknown[] }>(key, fetcher);
+  const count = (data?.assigned.length ?? 0) + (data?.mentions.length ?? 0);
+  if (!count) return null;
+  return (
+    <span
+      className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-semibold text-white"
+      style={{ background: "var(--accent)" }}
+      data-testid="inbox-badge"
+    >
+      {count}
+    </span>
+  );
+}
+
+function InboxIcon({ active }: { active?: boolean }) {
+  return (
+    <svg {...iconProps(active)}>
+      <path d="M22 12h-6l-2 3h-4l-2-3H2" />
+      <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
+    </svg>
+  );
 }
 
 function BoardIcon({ active }: { active?: boolean }) {

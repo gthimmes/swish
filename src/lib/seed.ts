@@ -604,14 +604,27 @@ export async function seedDatabase(prisma: PrismaClient) {
   await makeItem({
     title: "Notifications & activity inbox",
     type: "STORY",
-    priority: "LOW",
-    stage: "Backlog",
-    assignee: null,
+    priority: "MEDIUM",
+    stage: "Done",
+    assignee: glenn,
     estimate: 5,
     epicId: epicCollab.id,
     labels: ["frontend"],
     rank: 640,
-    description: "Per-user inbox of mentions, assignments, and spec-review requests.",
+    description: "Per-user Inbox of open assignments and @mentions, with a sidebar count badge.",
+    spec: {
+      status: "APPROVED",
+      problem: "Work and mentions scatter across items. People need one place that answers 'what needs me?'.",
+      goals: "An Inbox listing open items assigned to you and comments that @mention you; a nav count badge.",
+      nonGoals: "Email/push delivery and spec-review requests (a designated 'current user' stands in for auth).",
+      approach: "GET /api/inbox joins assigned open items + @firstName comment matches; a badge polls the same.",
+      criteria: [
+        { text: "Inbox lists open items assigned to the current user", done: true },
+        { text: "Inbox lists comments that @mention the current user", done: true },
+        { text: "Sidebar shows an unread count badge", done: true },
+      ],
+      tests: [{ text: "E2E: assigned list, mention list, badge, click opens item", status: "PASS" }],
+    },
   });
   await makeItem({
     title: "Role-based access control (RBAC)",
@@ -1045,6 +1058,17 @@ export async function seedDatabase(prisma: PrismaClient) {
         userId: dax.id,
         parentId: c.id,
         body: "On it — I'll add an arrow-key test and ping @Mira when it's green.",
+      },
+    });
+  }
+  const suiteItem = await prisma.workItem.findFirst({ where: { projectId: project.id, key: "SWISH-13" } });
+  if (suiteItem) {
+    await prisma.activity.create({
+      data: {
+        workItemId: suiteItem.id,
+        kind: "comment",
+        userId: mira.id,
+        body: "@Glenn the E2E suite is green end-to-end — nice work on the reseed harness.",
       },
     });
   }

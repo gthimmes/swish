@@ -27,6 +27,7 @@ export function BoardCard({
 
   const criteria = item.spec?.criteria ?? [];
   const doneCount = criteria.filter((c) => c.done).length;
+  const blocked = (item.blockedBy ?? []).some((d) => d.blocker.stage.category !== "DONE");
 
   return (
     <div
@@ -56,6 +57,18 @@ export function BoardCard({
       <p className="mb-2 text-sm leading-snug" style={{ color: "var(--text)" }}>
         {item.title}
       </p>
+
+      {blocked && (
+        <div className="mb-2">
+          <span
+            className="chip"
+            style={{ background: "#ef444422", color: "#ef4444", border: "1px solid #ef444444" }}
+            data-testid="blocked-chip"
+          >
+            ⛔ Blocked
+          </span>
+        </div>
+      )}
 
       {item.labels.length > 0 && (
         <div className="mb-2 flex flex-wrap gap-1">

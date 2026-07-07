@@ -11,6 +11,7 @@ import { Avatar, LabelChip, TypeBadge } from "./ui";
 import { SpecEditor } from "./SpecEditor";
 import { ActivityThread } from "./Comments";
 import { AgentBriefButton } from "./AgentBrief";
+import { DependenciesSection } from "./Dependencies";
 
 export function ItemDrawer() {
   const { openItemId, openItem } = useWorkspace();
@@ -196,6 +197,9 @@ function DrawerContent({ id }: { id: string }) {
         <div className="px-5 pb-4">
           <DescriptionField item={item} onSave={(description) => patch({ description })} />
         </div>
+
+        {/* Dependencies */}
+        <DependenciesSection item={item} onChanged={revalidate} />
 
         {/* Tabs */}
         <div className="sticky top-0 z-10 flex gap-1 px-5" style={{ background: "var(--bg)", borderBottom: "1px solid var(--border)" }}>

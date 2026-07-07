@@ -123,6 +123,7 @@ export default function TimelinePage() {
                     <div className="flex flex-col gap-1">
                       {g.items.map((it) => {
                         const done = doneStageIds.has(it.stageId);
+                        const blocked = (it.blockedBy ?? []).some((d) => d.blocker.stage.category !== "DONE");
                         const startMs = it.startDate ? new Date(it.startDate).getTime() : new Date(it.dueDate!).getTime();
                         const endMs = it.dueDate ? new Date(it.dueDate).getTime() : new Date(it.startDate!).getTime();
                         const overdue = !done && it.dueDate ? new Date(it.dueDate).getTime() < Date.now() : false;
@@ -136,15 +137,23 @@ export default function TimelinePage() {
                               onClick={() => openItem(it.id)}
                             >
                               <TypeBadge type={it.type} />
+                              {blocked && <span title="Blocked" style={{ color: "#ef4444" }}>⛔</span>}
                               <span className="truncate">{it.title}</span>
                             </button>
                             <div className="relative h-6 flex-1">
                               <button
                                 className="absolute top-1 h-4 rounded"
-                                style={{ left: `${left}%`, width: `${width}%`, background: color }}
+                                style={{
+                                  left: `${left}%`,
+                                  width: `${width}%`,
+                                  background: color,
+                                  outline: blocked ? "1.5px solid #ef4444" : "none",
+                                  outlineOffset: 1,
+                                }}
                                 title={`${it.key}: ${fmtDate(it.startDate)}${it.startDate && it.dueDate ? " → " : ""}${fmtDate(it.dueDate)}`}
                                 data-testid="timeline-bar"
                                 data-overdue={overdue}
+                                data-blocked={blocked}
                                 onClick={() => openItem(it.id)}
                               />
                             </div>

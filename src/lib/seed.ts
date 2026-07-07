@@ -806,16 +806,41 @@ export async function seedDatabase(prisma: PrismaClient) {
     },
   });
   await makeItem({
-    title: "Task dependencies & links",
+    title: "Task dependencies (blocks / blocked-by)",
     type: "STORY",
-    priority: "LOW",
-    stage: "Backlog",
-    assignee: null,
+    priority: "MEDIUM",
+    stage: "Done",
+    assignee: dax,
     estimate: 5,
     epicId: epicPlanning.id,
     labels: ["frontend", "backend"],
     rank: 827,
-    description: "Blocks / blocked-by relationships, shown as dependency lines on the timeline.",
+    description: "Directional blocks / blocked-by relationships with a Blocked indicator on cards, the drawer, and the timeline.",
+    spec: {
+      status: "APPROVED",
+      problem: "Work has ordering constraints. Without them, people start blocked work and stall.",
+      goals: "Add/remove blocks & blocked-by from the drawer; flag items whose blockers aren't Done.",
+      nonGoals: "Full dependency arrow-drawing between timeline bars (a blocked outline stands in for now).",
+      approach: "A directional Dependency model; drawer picker; a 'blocked' flag computed from blockers' stage category.",
+      criteria: [
+        { text: "Add and remove blocks / blocked-by from the item drawer", done: true },
+        { text: "A Blocked chip appears on cards when a blocker isn't Done", done: true },
+        { text: "The timeline outlines blocked scheduled items", done: true },
+      ],
+      tests: [{ text: "E2E: blocked chip, drawer list, add/remove, timeline flag", status: "PASS" }],
+    },
+  });
+  await makeItem({
+    title: "Dependency arrows on the timeline",
+    type: "STORY",
+    priority: "LOW",
+    stage: "Backlog",
+    assignee: null,
+    estimate: 3,
+    epicId: epicPlanning.id,
+    labels: ["frontend"],
+    rank: 828,
+    description: "Draw actual connector lines between blocker and blocked bars on the timeline.",
   });
   await makeItem({
     title: "Cycle analytics: burndown & velocity",
@@ -1071,6 +1096,22 @@ export async function seedDatabase(prisma: PrismaClient) {
   };
   for (const [key, cid] of Object.entries(cycleAssign)) {
     await prisma.workItem.updateMany({ where: { projectId: project.id, key }, data: { cycleId: cid } });
+  }
+
+  // Dependencies (blocker blocks blocked). Auth gates realtime + RBAC (both open
+  // → they show as blocked); the editor→criteria pair is already satisfied.
+  const depPairs: [string, string][] = [
+    ["SWISH-22", "SWISH-23"],
+    ["SWISH-22", "SWISH-26"],
+    ["SWISH-22", "SWISH-28"], // SWISH-28 is scheduled → shows blocked on the timeline
+    ["SWISH-7", "SWISH-8"],
+  ];
+  for (const [bk, dk] of depPairs) {
+    const blocker = await prisma.workItem.findFirst({ where: { projectId: project.id, key: bk } });
+    const blocked = await prisma.workItem.findFirst({ where: { projectId: project.id, key: dk } });
+    if (blocker && blocked) {
+      await prisma.dependency.create({ data: { blockerId: blocker.id, blockedId: blocked.id } });
+    }
   }
 
   // A sample comment thread (with an @mention + reply) for the demo.

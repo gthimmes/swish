@@ -25,11 +25,23 @@ export const itemListInclude = {
       tests: { select: { status: true } },
     },
   },
+  blockedBy: {
+    select: {
+      id: true,
+      blocker: { select: { id: true, key: true, stage: { select: { category: true } } } },
+    },
+  },
+} as const;
+
+const depItemSelect = {
+  select: { id: true, key: true, title: true, stage: { select: { name: true, category: true } } },
 } as const;
 
 export const itemDetailInclude = {
   ...itemInclude,
   children: { select: { id: true, key: true, title: true, stageId: true } },
+  blocks: { select: { id: true, blocked: depItemSelect } },
+  blockedBy: { select: { id: true, blocker: depItemSelect } },
   activity: {
     orderBy: { createdAt: "asc" },
     include: { user: true },

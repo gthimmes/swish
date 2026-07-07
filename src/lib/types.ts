@@ -95,8 +95,16 @@ export type WorkItem = {
   labels: Label[];
   epic: EpicRef | null;
   spec: SpecSummary | null;
+  blockedBy: { id: string; blocker: { id: string; key: string; stage: { category: string } } }[];
   createdAt: string;
   updatedAt: string;
+};
+
+export type DepRef = {
+  id: string; // the related item's id
+  key: string;
+  title: string;
+  stage: { name: string; category: string };
 };
 
 export type Activity = {
@@ -108,9 +116,11 @@ export type Activity = {
   user: User | null;
 };
 
-export type WorkItemDetail = Omit<WorkItem, "spec"> & {
+export type WorkItemDetail = Omit<WorkItem, "spec" | "blockedBy"> & {
   stage: Stage;
   spec: Spec | null;
   children: { id: string; key: string; title: string; stageId: string }[];
+  blocks: { id: string; blocked: DepRef }[];
+  blockedBy: { id: string; blocker: DepRef }[];
   activity: Activity[];
 };

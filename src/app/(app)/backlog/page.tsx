@@ -8,17 +8,18 @@ import { PageHeader } from "@/components/PageHeader";
 import { Filters, EMPTY_FILTERS, filtersToParams, type FilterState } from "@/components/Filters";
 import { NewItemButton } from "@/components/NewItemButton";
 import { Avatar, LabelChip, Meter, PriorityBadge, SpecStatusBadge, TypeBadge } from "@/components/ui";
-import { PRIORITY_META } from "@/lib/enums";
+import { PRIORITY_META, PRIORITIES } from "@/lib/enums";
 import type { WorkItem } from "@/lib/types";
 
 type SortKey = "rank" | "priority" | "title" | "stage" | "estimate";
 
 export default function BacklogPage() {
-  const { project, openItem } = useWorkspace();
+  const { project, openItem, users } = useWorkspace();
   const { mutate } = useSWRConfig();
   const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS);
   const [sort, setSort] = useState<SortKey>("rank");
   const [dir, setDir] = useState<1 | -1>(1);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const params = filtersToParams(filters);
   const { data: items } = useItems(project?.id, params);
@@ -68,6 +69,25 @@ export default function BacklogPage() {
     mutate((k) => typeof k === "string" && k.startsWith("/api/items?"));
   }
 
+  function toggleSelect(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+  const allSelected = sorted.length > 0 && sorted.every((i) => selected.has(i.id));
+  function toggleSelectAll() {
+    setSelected(allSelected ? new Set() : new Set(sorted.map((i) => i.id)));
+  }
+
+  async function bulk(body: Record<string, unknown>) {
+    await api("/api/items/bulk", "POST", { ids: Array.from(selected), ...body });
+    setSelected(new Set());
+    mutate((k) => typeof k === "string" && k.startsWith("/api/items?"));
+  }
+
   const totalPoints = sorted.reduce((n, i) => n + (i.estimate ?? 0), 0);
 
   return (
@@ -81,6 +101,15 @@ export default function BacklogPage() {
         <table className="w-full border-collapse text-sm" data-testid="backlog-table">
           <thead className="sticky top-0 z-10" style={{ background: "var(--bg-elev)" }}>
             <tr style={{ borderBottom: "1px solid var(--border)" }}>
+              <th className="w-9 px-3 py-2">
+                <input
+                  type="checkbox"
+                  aria-label="Select all"
+                  data-testid="select-all"
+                  checked={allSelected}
+                  onChange={toggleSelectAll}
+                />
+              </th>
               <Th onClick={() => toggleSort("title")} active={sort === "title"} dir={dir}>
                 Item
               </Th>
@@ -108,6 +137,8 @@ export default function BacklogPage() {
                 item={item}
                 stages={project?.stages ?? []}
                 stageColor={stageName.get(item.stageId)?.color ?? "#64748b"}
+                selected={selected.has(item.id)}
+                onToggleSelect={() => toggleSelect(item.id)}
                 onOpen={() => openItem(item.id)}
                 onPatch={(d) => patch(item.id, d)}
               />
@@ -127,7 +158,112 @@ export default function BacklogPage() {
           </div>
         )}
       </div>
+
+      {selected.size > 0 && (
+        <BulkBar
+          count={selected.size}
+          stages={project?.stages ?? []}
+          users={users}
+          onStage={(stageId) => bulk({ patch: { stageId } })}
+          onAssignee={(assigneeId) => bulk({ patch: { assigneeId } })}
+          onPriority={(priority) => bulk({ patch: { priority } })}
+          onDelete={() => bulk({ delete: true })}
+          onClear={() => setSelected(new Set())}
+        />
+      )}
     </>
+  );
+}
+
+function BulkBar({
+  count,
+  stages,
+  users,
+  onStage,
+  onAssignee,
+  onPriority,
+  onDelete,
+  onClear,
+}: {
+  count: number;
+  stages: { id: string; name: string }[];
+  users: { id: string; name: string }[];
+  onStage: (id: string) => void;
+  onAssignee: (id: string | null) => void;
+  onPriority: (p: string) => void;
+  onDelete: () => void;
+  onClear: () => void;
+}) {
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  return (
+    <div
+      className="fixed bottom-5 left-1/2 z-40 flex -translate-x-1/2 items-center gap-2 rounded-xl px-3 py-2 shadow-2xl"
+      style={{ background: "var(--bg-elev-2)", border: "1px solid var(--border-strong)" }}
+      data-testid="bulk-bar"
+    >
+      <span className="px-1 text-sm font-medium" data-testid="bulk-count">
+        {count} selected
+      </span>
+      <select
+        className="input w-auto"
+        data-testid="bulk-stage"
+        defaultValue=""
+        onChange={(e) => e.target.value && onStage(e.target.value)}
+      >
+        <option value="">Stage…</option>
+        {stages.map((s) => (
+          <option key={s.id} value={s.id}>
+            {s.name}
+          </option>
+        ))}
+      </select>
+      <select
+        className="input w-auto"
+        data-testid="bulk-assignee"
+        defaultValue=""
+        onChange={(e) => {
+          if (e.target.value) onAssignee(e.target.value === "none" ? null : e.target.value);
+        }}
+      >
+        <option value="">Assignee…</option>
+        <option value="none">Unassigned</option>
+        {users.map((u) => (
+          <option key={u.id} value={u.id}>
+            {u.name}
+          </option>
+        ))}
+      </select>
+      <select
+        className="input w-auto"
+        data-testid="bulk-priority"
+        defaultValue=""
+        onChange={(e) => e.target.value && onPriority(e.target.value)}
+      >
+        <option value="">Priority…</option>
+        {PRIORITIES.map((p) => (
+          <option key={p} value={p}>
+            {PRIORITY_META[p].label}
+          </option>
+        ))}
+      </select>
+      {confirmDelete ? (
+        <span className="flex items-center gap-1">
+          <button className="btn btn-outline text-xs" onClick={() => setConfirmDelete(false)}>
+            Cancel
+          </button>
+          <button className="btn text-xs" style={{ color: "var(--danger)" }} data-testid="bulk-delete-confirm" onClick={onDelete}>
+            Delete {count}
+          </button>
+        </span>
+      ) : (
+        <button className="btn btn-ghost px-2 py-1" style={{ color: "var(--danger)" }} data-testid="bulk-delete" onClick={() => setConfirmDelete(true)}>
+          Delete
+        </button>
+      )}
+      <button className="btn btn-ghost px-2 py-1 text-xs" data-testid="bulk-clear" onClick={onClear}>
+        ✕
+      </button>
+    </div>
   );
 }
 
@@ -135,12 +271,16 @@ function BacklogRow({
   item,
   stages,
   stageColor,
+  selected,
+  onToggleSelect,
   onOpen,
   onPatch,
 }: {
   item: WorkItem;
   stages: { id: string; name: string }[];
   stageColor: string;
+  selected: boolean;
+  onToggleSelect: () => void;
   onOpen: () => void;
   onPatch: (d: Record<string, unknown>) => void;
 }) {
@@ -149,11 +289,21 @@ function BacklogRow({
   return (
     <tr
       className="cursor-pointer transition-colors hover:bg-[var(--bg-elev)]"
-      style={{ borderBottom: "1px solid var(--border)" }}
+      style={{ borderBottom: "1px solid var(--border)", background: selected ? "var(--accent-soft)" : undefined }}
       data-testid="backlog-row"
       data-key={item.key}
+      data-selected={selected}
       onClick={onOpen}
     >
+      <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
+        <input
+          type="checkbox"
+          aria-label={`Select ${item.key}`}
+          data-testid="row-select"
+          checked={selected}
+          onChange={onToggleSelect}
+        />
+      </td>
       <td className="px-3 py-2" data-testid="backlog-item-cell">
         <div className="flex items-center gap-2">
           <TypeBadge type={item.type} />

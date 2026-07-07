@@ -29,7 +29,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
     if (!existing) throw new Error("Item not found");
 
     const data: Record<string, unknown> = {};
-    for (const k of ["title", "type", "priority", "estimate", "description", "rank", "stageId", "assigneeId", "epicId"] as const) {
+    for (const k of ["title", "type", "priority", "estimate", "description", "rank", "stageId", "assigneeId", "epicId", "cycleId"] as const) {
       if (body[k] !== undefined) data[k] = body[k];
     }
     // Date fields: accept an ISO/date string or null.

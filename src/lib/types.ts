@@ -45,6 +45,14 @@ export type ProjectSummary = {
 
 export type EpicRef = { id: string; key: string; title: string };
 
+export type Cycle = {
+  id: string;
+  projectId: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+};
+
 export type Criterion = { id: string; text: string; done: boolean; order: number };
 export type TestItem = { id: string; text: string; status: TestStatus; order: number };
 
@@ -80,6 +88,7 @@ export type WorkItem = {
   stageId: string;
   assigneeId: string | null;
   epicId: string | null;
+  cycleId: string | null;
   startDate: string | null;
   dueDate: string | null;
   assignee: User | null;

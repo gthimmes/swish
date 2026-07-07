@@ -11,6 +11,7 @@ const NAV = [
   { href: "/board", label: "Board", icon: BoardIcon },
   { href: "/backlog", label: "Backlog", icon: ListIcon },
   { href: "/roadmap", label: "Roadmap", icon: RoadmapIcon },
+  { href: "/cycles", label: "Cycles", icon: CyclesIcon },
   { href: "/timeline", label: "Timeline", icon: TimelineIcon },
   { href: "/insights", label: "Insights", icon: InsightsIcon },
   { href: "/specs", label: "Specs", icon: SpecIcon },
@@ -160,6 +161,14 @@ function RoadmapIcon({ active }: { active?: boolean }) {
       <path d="M4 6h10M4 12h16M4 18h7" />
       <circle cx="18" cy="6" r="1.6" />
       <circle cx="14" cy="18" r="1.6" />
+    </svg>
+  );
+}
+function CyclesIcon({ active }: { active?: boolean }) {
+  return (
+    <svg {...iconProps(active)}>
+      <path d="M21 12a9 9 0 1 1-3-6.7" />
+      <path d="M21 3v5h-5" />
     </svg>
   );
 }

@@ -180,6 +180,9 @@ function DrawerContent({ id }: { id: string }) {
               onChange={(e) => patch({ dueDate: e.target.value || null })}
             />
           </Meta>
+          <Meta label="Cycle">
+            <CycleSelect item={item} onChange={(cycleId) => patch({ cycleId })} />
+          </Meta>
         </div>
 
         {/* Labels */}
@@ -278,6 +281,34 @@ function EpicSelect({ item, onChange }: { item: WorkItemDetail; onChange: (id: s
             {o.title}
           </option>
         ))}
+    </select>
+  );
+}
+
+function CycleSelect({ item, onChange }: { item: WorkItemDetail; onChange: (id: string | null) => void }) {
+  const { project } = useWorkspace();
+  const [options, setOptions] = useState<{ id: string; name: string }[]>([]);
+  useEffect(() => {
+    if (!project) return;
+    fetch(`/api/projects/${project.id}/cycles`)
+      .then((r) => r.json())
+      .then((rows) => setOptions(rows.map((r: { id: string; name: string }) => ({ id: r.id, name: r.name }))))
+      .catch(() => {});
+  }, [project?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <select
+      className="input"
+      data-testid="drawer-cycle"
+      value={item.cycleId ?? ""}
+      onChange={(e) => onChange(e.target.value || null)}
+    >
+      <option value="">No cycle</option>
+      {options.map((o) => (
+        <option key={o.id} value={o.id}>
+          {o.name}
+        </option>
+      ))}
     </select>
   );
 }

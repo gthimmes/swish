@@ -33,6 +33,20 @@ model Project {
   items       WorkItem[]
   labels      Label[]
   views       SavedView[]
+  cycles      Cycle[]
+}
+
+model Cycle {
+  id        String     @id @default(cuid())
+  projectId String
+  project   Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name      String
+  startDate DateTime
+  endDate   DateTime
+  createdAt DateTime   @default(now())
+  items     WorkItem[]
+
+  @@index([projectId])
 }
 
 model SavedView {
@@ -85,6 +99,9 @@ model WorkItem {
   epicId   String?
   epic     WorkItem?  @relation("EpicChildren", fields: [epicId], references: [id])
   children WorkItem[] @relation("EpicChildren")
+
+  cycleId String?
+  cycle   Cycle?  @relation(fields: [cycleId], references: [id], onDelete: SetNull)
 
   labels   Label[]
   spec     Spec?

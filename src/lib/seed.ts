@@ -734,7 +734,7 @@ export async function seedDatabase(prisma: PrismaClient) {
     title: "Cycles / sprints (time-boxed iterations)",
     type: "STORY",
     priority: "MEDIUM",
-    stage: "Spec",
+    stage: "Done",
     assignee: lena,
     estimate: 5,
     epicId: epicPlanning.id,
@@ -742,15 +742,17 @@ export async function seedDatabase(prisma: PrismaClient) {
     rank: 810,
     description: "Optional cycles for teams that want cadence — without forcing Scrum on everyone.",
     spec: {
-      status: "DRAFT",
+      status: "APPROVED",
       problem: "Some teams want time-boxed iterations; Swish must support them without mandating a methodology.",
-      goals: "Create a cycle with dates; assign items; a cycle view shows scope, progress, and carryover.",
+      goals: "Create a cycle with dates; assign items; a cycle view shows scope, progress, and status.",
       nonGoals: "Story-point ceremonies, mandatory planning poker.",
-      approach: "Cycle model with date range; items get an optional cycleId; a filtered board/backlog per cycle.",
+      approach: "Cycle model with date range; items get an optional cycleId; a /cycles view with per-cycle progress.",
       criteria: [
-        { text: "Create a cycle and assign items to it", done: false },
-        { text: "Cycle view shows progress and carryover", done: false },
+        { text: "Create/delete a cycle with a date range", done: true },
+        { text: "Assign items to a cycle from the item drawer", done: true },
+        { text: "Cycle view shows progress and Upcoming/Active/Completed status", done: true },
       ],
+      tests: [{ text: "E2E: list/status/progress, assign from drawer, create, delete", status: "PASS" }],
     },
   });
   await makeItem({
@@ -1050,6 +1052,25 @@ export async function seedDatabase(prisma: PrismaClient) {
         dueDate: d.due ? new Date(d.due) : null,
       },
     });
+  }
+
+  // Cycles: one completed, one active (contains the seed's "today" window).
+  const sprint24 = await prisma.cycle.create({
+    data: { projectId: project.id, name: "Sprint 24", startDate: new Date("2026-06-15"), endDate: new Date("2026-06-29") },
+  });
+  const sprint25 = await prisma.cycle.create({
+    data: { projectId: project.id, name: "Sprint 25", startDate: new Date("2026-06-30"), endDate: new Date("2026-07-14") },
+  });
+  const cycleAssign: Record<string, string> = {
+    "SWISH-3": sprint24.id,
+    "SWISH-7": sprint24.id,
+    "SWISH-20": sprint25.id,
+    "SWISH-18": sprint25.id,
+    "SWISH-22": sprint25.id,
+    "SWISH-28": sprint25.id,
+  };
+  for (const [key, cid] of Object.entries(cycleAssign)) {
+    await prisma.workItem.updateMany({ where: { projectId: project.id, key }, data: { cycleId: cid } });
   }
 
   // A sample comment thread (with an @mention + reply) for the demo.

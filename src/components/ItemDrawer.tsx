@@ -6,6 +6,7 @@ import { useWorkspace } from "./workspace";
 import { useItem, api } from "@/lib/client";
 import { ITEM_TYPES, PRIORITIES, TYPE_META, PRIORITY_META } from "@/lib/enums";
 import type { WorkItemDetail } from "@/lib/types";
+import { toDateInput } from "@/lib/dates";
 import { Avatar, LabelChip, TypeBadge } from "./ui";
 import { SpecEditor } from "./SpecEditor";
 import { ActivityThread } from "./Comments";
@@ -158,6 +159,24 @@ function DrawerContent({ id }: { id: string }) {
           </Meta>
           <Meta label="Epic">
             <EpicSelect item={item} onChange={(epicId) => patch({ epicId })} />
+          </Meta>
+          <Meta label="Start date">
+            <input
+              className="input"
+              type="date"
+              data-testid="drawer-start"
+              value={toDateInput(item.startDate)}
+              onChange={(e) => patch({ startDate: e.target.value || null })}
+            />
+          </Meta>
+          <Meta label="Due date">
+            <input
+              className="input"
+              type="date"
+              data-testid="drawer-due"
+              value={toDateInput(item.dueDate)}
+              onChange={(e) => patch({ dueDate: e.target.value || null })}
+            />
           </Meta>
         </div>
 

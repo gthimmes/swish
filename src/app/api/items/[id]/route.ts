@@ -32,6 +32,10 @@ export async function PATCH(req: Request, { params }: Ctx) {
     for (const k of ["title", "type", "priority", "estimate", "description", "rank", "stageId", "assigneeId", "epicId"] as const) {
       if (body[k] !== undefined) data[k] = body[k];
     }
+    // Date fields: accept an ISO/date string or null.
+    for (const k of ["startDate", "dueDate"] as const) {
+      if (body[k] !== undefined) data[k] = body[k] ? new Date(body[k]) : null;
+    }
     if (body.labelIds !== undefined) {
       data.labels = { set: body.labelIds.map((lid: string) => ({ id: lid })) };
     }

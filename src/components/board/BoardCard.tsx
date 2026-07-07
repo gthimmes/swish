@@ -3,16 +3,18 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { WorkItem } from "@/lib/types";
-import { Avatar, LabelChip, Meter, PriorityBadge, SpecStatusBadge, TypeBadge } from "@/components/ui";
+import { Avatar, DueChip, LabelChip, Meter, PriorityBadge, SpecStatusBadge, TypeBadge } from "@/components/ui";
 
 export function BoardCard({
   item,
   onOpen,
   overlay = false,
+  done = false,
 }: {
   item: WorkItem;
   onOpen?: (id: string) => void;
   overlay?: boolean;
+  done?: boolean;
 }) {
   const sortable = useSortable({ id: item.id, data: { item } });
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = sortable;
@@ -66,6 +68,7 @@ export function BoardCard({
       <div className="flex items-center gap-2">
         {item.spec && <SpecStatusBadge status={item.spec.status} />}
         <Meter done={doneCount} total={criteria.length} />
+        <DueChip due={item.dueDate} done={done} />
         {item.estimate != null && (
           <span
             className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-semibold"

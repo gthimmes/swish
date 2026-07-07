@@ -226,7 +226,7 @@ function Column({
         )}
         <SortableContext items={cards.map((c) => c.id)} strategy={verticalListSortingStrategy}>
           {cards.map((card) => (
-            <BoardCard key={card.id} item={card} onOpen={onOpen} />
+            <BoardCard key={card.id} item={card} onOpen={onOpen} done={stage.category === "DONE"} />
           ))}
         </SortableContext>
       </div>

@@ -80,6 +80,8 @@ export type WorkItem = {
   stageId: string;
   assigneeId: string | null;
   epicId: string | null;
+  startDate: string | null;
+  dueDate: string | null;
   assignee: User | null;
   labels: Label[];
   epic: EpicRef | null;

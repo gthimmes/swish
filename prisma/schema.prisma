@@ -71,6 +71,8 @@ model WorkItem {
   estimate    Int?
   rank        Float    @default(1000)
   description String?
+  startDate   DateTime?
+  dueDate     DateTime?
 
   projectId  String
   project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)

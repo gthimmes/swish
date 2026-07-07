@@ -8,6 +8,7 @@ const NAV = [
   { href: "/board", label: "Board", icon: BoardIcon },
   { href: "/backlog", label: "Backlog", icon: ListIcon },
   { href: "/roadmap", label: "Roadmap", icon: RoadmapIcon },
+  { href: "/timeline", label: "Timeline", icon: TimelineIcon },
   { href: "/insights", label: "Insights", icon: InsightsIcon },
   { href: "/specs", label: "Specs", icon: SpecIcon },
   { href: "/settings", label: "Workflow", icon: GearIcon },
@@ -128,6 +129,15 @@ function RoadmapIcon({ active }: { active?: boolean }) {
       <path d="M4 6h10M4 12h16M4 18h7" />
       <circle cx="18" cy="6" r="1.6" />
       <circle cx="14" cy="18" r="1.6" />
+    </svg>
+  );
+}
+function TimelineIcon({ active }: { active?: boolean }) {
+  return (
+    <svg {...iconProps(active)}>
+      <path d="M3 7h9M3 12h14M3 17h6" />
+      <rect x="12" y="5" width="5" height="4" rx="1" />
+      <rect x="17" y="10" width="4" height="4" rx="1" />
     </svg>
   );
 }

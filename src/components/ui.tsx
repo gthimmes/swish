@@ -76,6 +76,28 @@ export function LabelChip({ label }: { label: { name: string; color: string } })
   );
 }
 
+export function DueChip({ due, done }: { due: string | null; done: boolean }) {
+  if (!due) return null;
+  const overdue = !done && new Date(due).getTime() < Date.now();
+  const label = new Date(due).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  const color = done ? "#22c55e" : overdue ? "#ef4444" : "#94a3b8";
+  return (
+    <span
+      className="inline-flex items-center gap-1 text-xs"
+      style={{ color }}
+      title={overdue ? "Overdue" : "Due date"}
+      data-testid="due-chip"
+      data-overdue={overdue}
+    >
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <rect x="3" y="4" width="18" height="18" rx="2" />
+        <path d="M16 2v4M8 2v4M3 10h18" />
+      </svg>
+      {label}
+    </span>
+  );
+}
+
 export function Dot({ color, size = 8 }: { color: string; size?: number }) {
   return (
     <span

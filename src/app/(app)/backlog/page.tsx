@@ -7,11 +7,11 @@ import { useItems, api } from "@/lib/client";
 import { PageHeader } from "@/components/PageHeader";
 import { Filters, EMPTY_FILTERS, filtersToParams, type FilterState } from "@/components/Filters";
 import { NewItemButton } from "@/components/NewItemButton";
-import { Avatar, LabelChip, Meter, PriorityBadge, SpecStatusBadge, TypeBadge } from "@/components/ui";
+import { Avatar, DueChip, LabelChip, Meter, PriorityBadge, SpecStatusBadge, TypeBadge } from "@/components/ui";
 import { PRIORITY_META, PRIORITIES } from "@/lib/enums";
 import type { WorkItem } from "@/lib/types";
 
-type SortKey = "rank" | "priority" | "title" | "stage" | "estimate";
+type SortKey = "rank" | "priority" | "title" | "stage" | "estimate" | "due";
 
 export default function BacklogPage() {
   const { project, openItem, users } = useWorkspace();
@@ -25,8 +25,8 @@ export default function BacklogPage() {
   const { data: items } = useItems(project?.id, params);
 
   const stageName = useMemo(() => {
-    const m = new Map<string, { name: string; order: number; color: string }>();
-    project?.stages.forEach((s) => m.set(s.id, { name: s.name, order: s.order, color: s.color }));
+    const m = new Map<string, { name: string; order: number; color: string; category: string }>();
+    project?.stages.forEach((s) => m.set(s.id, { name: s.name, order: s.order, color: s.color, category: s.category }));
     return m;
   }, [project]);
 
@@ -48,6 +48,12 @@ export default function BacklogPage() {
         case "estimate":
           cmp = (a.estimate ?? -1) - (b.estimate ?? -1);
           break;
+        case "due": {
+          const av = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
+          const bv = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
+          cmp = av - bv;
+          break;
+        }
         default:
           cmp = a.rank - b.rank;
       }
@@ -125,6 +131,9 @@ export default function BacklogPage() {
               <Th onClick={() => toggleSort("estimate")} active={sort === "estimate"} dir={dir} className="w-20">
                 Points
               </Th>
+              <Th onClick={() => toggleSort("due")} active={sort === "due"} dir={dir} className="w-24">
+                Due
+              </Th>
               <th className="px-3 py-2 text-left font-medium" style={{ color: "var(--text-dim)" }}>
                 Spec
               </th>
@@ -137,6 +146,7 @@ export default function BacklogPage() {
                 item={item}
                 stages={project?.stages ?? []}
                 stageColor={stageName.get(item.stageId)?.color ?? "#64748b"}
+                done={stageName.get(item.stageId)?.category === "DONE"}
                 selected={selected.has(item.id)}
                 onToggleSelect={() => toggleSelect(item.id)}
                 onOpen={() => openItem(item.id)}
@@ -271,6 +281,7 @@ function BacklogRow({
   item,
   stages,
   stageColor,
+  done,
   selected,
   onToggleSelect,
   onOpen,
@@ -279,13 +290,14 @@ function BacklogRow({
   item: WorkItem;
   stages: { id: string; name: string }[];
   stageColor: string;
+  done: boolean;
   selected: boolean;
   onToggleSelect: () => void;
   onOpen: () => void;
   onPatch: (d: Record<string, unknown>) => void;
 }) {
   const criteria = item.spec?.criteria ?? [];
-  const done = criteria.filter((c) => c.done).length;
+  const criteriaDone = criteria.filter((c) => c.done).length;
   return (
     <tr
       className="cursor-pointer transition-colors hover:bg-[var(--bg-elev)]"
@@ -344,9 +356,12 @@ function BacklogRow({
         {item.estimate ?? "—"}
       </td>
       <td className="px-3 py-2">
+        {item.dueDate ? <DueChip due={item.dueDate} done={done} /> : <span style={{ color: "var(--text-faint)" }}>—</span>}
+      </td>
+      <td className="px-3 py-2">
         <div className="flex items-center gap-2">
           {item.spec ? <SpecStatusBadge status={item.spec.status} /> : <span style={{ color: "var(--text-faint)" }}>—</span>}
-          <Meter done={done} total={criteria.length} />
+          <Meter done={criteriaDone} total={criteria.length} />
         </div>
       </td>
     </tr>

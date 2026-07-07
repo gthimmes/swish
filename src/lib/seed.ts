@@ -754,16 +754,41 @@ export async function seedDatabase(prisma: PrismaClient) {
     },
   });
   await makeItem({
-    title: "Timeline view with dates & dependencies",
+    title: "Timeline view (schedule on a date axis)",
+    type: "STORY",
+    priority: "MEDIUM",
+    stage: "Done",
+    assignee: glenn,
+    estimate: 5,
+    epicId: epicPlanning.id,
+    labels: ["frontend"],
+    rank: 825,
+    description: "Start/due dates on items and a Timeline page that lays them on a month axis grouped by epic.",
+    spec: {
+      status: "APPROVED",
+      problem: "The roadmap shows structure and progress, but not when work is scheduled.",
+      goals: "Start/due dates on items; a Timeline page with bars start→due, overdue flags, and a today line.",
+      nonGoals: "Dependency links between items — tracked separately.",
+      approach: "Add startDate/dueDate to WorkItem; a /timeline page positions bars by date within the range.",
+      criteria: [
+        { text: "Items carry start and due dates (drawer, backlog Due column, card chip)", done: true },
+        { text: "Timeline lays bars start→due grouped by epic with a today line", done: true },
+        { text: "Overdue items are visibly flagged", done: true },
+      ],
+      tests: [{ text: "E2E: timeline bars/overdue/today, set due persists, card chip", status: "PASS" }],
+    },
+  });
+  await makeItem({
+    title: "Task dependencies & links",
     type: "STORY",
     priority: "LOW",
     stage: "Backlog",
     assignee: null,
     estimate: 5,
     epicId: epicPlanning.id,
-    labels: ["frontend"],
-    rank: 825,
-    description: "A true time-axis Gantt: schedule epics/stories on a calendar with dependency links.",
+    labels: ["frontend", "backend"],
+    rank: 827,
+    description: "Blocks / blocked-by relationships, shown as dependency lines on the timeline.",
   });
   await makeItem({
     title: "Cycle analytics: burndown & velocity",
@@ -981,6 +1006,26 @@ export async function seedDatabase(prisma: PrismaClient) {
     rank: 1040,
     description: "Let teams add their own typed fields (select, number, URL) and group/filter by them.",
   });
+
+  // Schedule a handful of items so the timeline is populated (fixed dates for
+  // deterministic tests; SWISH-20 is intentionally overdue).
+  const dateMap: Record<string, { start?: string; due?: string }> = {
+    "SWISH-3": { start: "2026-06-20", due: "2026-07-02" },
+    "SWISH-2": { start: "2026-06-25", due: "2026-07-18" },
+    "SWISH-20": { start: "2026-06-24", due: "2026-06-30" }, // overdue, not done
+    "SWISH-18": { start: "2026-07-01", due: "2026-07-11" },
+    "SWISH-22": { start: "2026-07-10", due: "2026-08-01" },
+    "SWISH-28": { start: "2026-07-08", due: "2026-07-22" },
+  };
+  for (const [key, d] of Object.entries(dateMap)) {
+    await prisma.workItem.updateMany({
+      where: { projectId: project.id, key },
+      data: {
+        startDate: d.start ? new Date(d.start) : null,
+        dueDate: d.due ? new Date(d.due) : null,
+      },
+    });
+  }
 
   // A sample comment thread (with an @mention + reply) for the demo.
   const dragItem = await prisma.workItem.findFirst({ where: { projectId: project.id, key: "SWISH-3" } });

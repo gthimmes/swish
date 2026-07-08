@@ -105,6 +105,7 @@ export type WorkItem = {
   epic: EpicRef | null;
   spec: SpecSummary | null;
   blockedBy: { id: string; blocker: { id: string; key: string; stage: { category: string } } }[];
+  fieldValues: { id: string; fieldId: string; value: string }[];
   createdAt: string;
   updatedAt: string;
 };

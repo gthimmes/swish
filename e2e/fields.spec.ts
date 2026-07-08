@@ -35,6 +35,15 @@ test.describe("Custom fields", () => {
     await expect(page.getByTestId("field-team")).toHaveValue("Platform");
   });
 
+  test("groups the board by a custom select field", async ({ page }) => {
+    await page.goto("/board");
+    await expect(page.getByTestId("board")).toBeVisible();
+    await page.getByTestId("group-by").selectOption({ label: "Team" });
+    // Seeded: SWISH-3 → Frontend, SWISH-12 → Platform.
+    await expect(page.locator('[data-testid="swimlane"][data-lane="Frontend"] [data-key="SWISH-3"]')).toBeVisible();
+    await expect(page.locator('[data-testid="swimlane"][data-lane="Platform"] [data-key="SWISH-12"]')).toBeVisible();
+  });
+
   test("sets a URL field on an item without a value", async ({ page }) => {
     await page.goto("/board");
     await openCard(page, "SWISH-16");

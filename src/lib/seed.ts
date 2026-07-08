@@ -1072,6 +1072,31 @@ export async function seedDatabase(prisma: PrismaClient) {
     description: "A custom dnd-kit coordinate getter so arrow keys move a card between columns, not just within one.",
   });
   await makeItem({
+    title: "Group the board by a custom field",
+    type: "STORY",
+    priority: "MEDIUM",
+    stage: "Done",
+    assignee: glenn,
+    estimate: 3,
+    epicId: epicPolish.id,
+    labels: ["frontend"],
+    rank: 1036,
+    description: "Swimlanes along a custom SELECT field; dragging across lanes reassigns the field value.",
+    spec: {
+      status: "APPROVED",
+      problem: "Swimlanes support built-in dimensions but not the fields teams define themselves.",
+      goals: "Add each SELECT custom field to Group by; lanes are its options + 'No value'; cross-lane drag sets it.",
+      nonGoals: "Filtering the board by a custom field (a follow-up).",
+      approach: "computeLanes handles a 'field:<id>' groupBy; onDragEnd upserts the field value on cross-lane drops.",
+      criteria: [
+        { text: "SELECT fields appear under Group by", done: true },
+        { text: "Lanes reflect the field's options + a No-value lane", done: true },
+        { text: "Items land in the lane matching their field value", done: true },
+      ],
+      tests: [{ text: "E2E: group by Team places items in the right lanes", status: "PASS" }],
+    },
+  });
+  await makeItem({
     title: "Custom fields per project",
     type: "STORY",
     priority: "MEDIUM",

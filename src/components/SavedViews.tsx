@@ -5,20 +5,20 @@ import useSWR from "swr";
 import { fetcher, api } from "@/lib/client";
 import { useWorkspace } from "./workspace";
 import { Modal } from "./Modal";
-import type { GroupBy } from "@/lib/enums";
+
 import type { FilterState } from "./Filters";
 import { EMPTY_FILTERS, hasActiveFilters } from "./Filters";
 
-type SavedView = { id: string; name: string; groupBy: GroupBy; filters: string };
+type SavedView = { id: string; name: string; groupBy: string; filters: string };
 
 export function SavedViews({
   groupBy,
   filters,
   onApply,
 }: {
-  groupBy: GroupBy;
+  groupBy: string;
   filters: FilterState;
-  onApply: (groupBy: GroupBy, filters: FilterState) => void;
+  onApply: (groupBy: string, filters: FilterState) => void;
 }) {
   const { project } = useWorkspace();
   const key = project ? `/api/projects/${project.id}/views` : null;

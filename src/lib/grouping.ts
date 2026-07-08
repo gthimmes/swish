@@ -1,6 +1,6 @@
 import type { GroupBy } from "./enums";
 import { PRIORITY_META, PRIORITIES, ITEM_TYPES, TYPE_META } from "./enums";
-import type { Project, User, WorkItem } from "./types";
+import type { CustomField, Project, User, WorkItem } from "./types";
 
 export type Lane = {
   key: string; // stable identity used in droppable ids and field updates
@@ -9,18 +9,45 @@ export type Lane = {
   // the field/value a card must have to belong to this lane (for cross-lane drag)
   field?: "assigneeId" | "priority" | "type" | "epicId";
   value?: string | null;
+  // for grouping by a custom field
+  customFieldId?: string;
 };
 
 const NONE_LANE: Lane = { key: "all", label: "" };
 
+const FIELD_COLORS = ["#6366f1", "#22c55e", "#f59e0b", "#ec4899", "#0ea5e9", "#a855f7", "#14b8a6", "#ef4444"];
+
 /** Compute the ordered set of swimlanes for a board given the grouping mode. */
 export function computeLanes(
-  groupBy: GroupBy,
+  groupBy: string,
   items: WorkItem[],
   users: User[],
-  project: Project | undefined
+  project: Project | undefined,
+  customFields: CustomField[] = []
 ): Lane[] {
-  switch (groupBy) {
+  // Grouping by a custom SELECT field: "field:<id>"
+  if (groupBy.startsWith("field:")) {
+    const fieldId = groupBy.slice("field:".length);
+    const field = customFields.find((f) => f.id === fieldId);
+    if (!field) return [NONE_LANE];
+    let options: string[] = [];
+    try {
+      options = JSON.parse(field.options);
+    } catch {
+      options = [];
+    }
+    const lanes: Lane[] = options.map((opt, i) => ({
+      key: opt,
+      label: opt,
+      color: FIELD_COLORS[i % FIELD_COLORS.length],
+      customFieldId: fieldId,
+      value: opt,
+    }));
+    lanes.push({ key: "__none", label: `No ${field.name}`, customFieldId: fieldId, value: null });
+    return lanes;
+  }
+
+  switch (groupBy as GroupBy) {
     case "assignee": {
       const lanes: Lane[] = users.map((u) => ({
         key: u.id,
@@ -68,6 +95,11 @@ export function computeLanes(
 
 /** Does an item belong in this lane? */
 export function itemInLane(item: WorkItem, lane: Lane): boolean {
+  if (lane.customFieldId) {
+    const fv = item.fieldValues?.find((v) => v.fieldId === lane.customFieldId);
+    const current = fv?.value ?? null;
+    return current === lane.value;
+  }
   if (!lane.field) return true;
   switch (lane.field) {
     case "assigneeId":

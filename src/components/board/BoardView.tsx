@@ -15,10 +15,9 @@ import {
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { useDroppable } from "@dnd-kit/core";
 import { useWorkspace } from "@/components/workspace";
-import { useItems, itemsKey, api } from "@/lib/client";
-import { useSWRConfig } from "swr";
-import type { WorkItem, Stage } from "@/lib/types";
-import type { GroupBy } from "@/lib/enums";
+import { useItems, itemsKey, api, fetcher } from "@/lib/client";
+import useSWR, { useSWRConfig } from "swr";
+import type { WorkItem, Stage, CustomField } from "@/lib/types";
 import { computeLanes, itemInLane, containerId, parseContainerId, type Lane } from "@/lib/grouping";
 import { BoardCard } from "./BoardCard";
 import { Dot } from "@/components/ui";
@@ -29,13 +28,17 @@ export function BoardView({
   groupBy,
   filters,
 }: {
-  groupBy: GroupBy;
+  groupBy: string;
   filters: FilterState;
 }) {
   const { project, users, openItem } = useWorkspace();
   const params = filtersToParams(filters);
   const key = itemsKey(project?.id, params);
   const { data: items } = useItems(project?.id, params);
+  const { data: customFields } = useSWR<CustomField[]>(
+    project ? `/api/projects/${project.id}/fields` : null,
+    fetcher
+  );
   const { mutate } = useSWRConfig();
 
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -51,8 +54,8 @@ export function BoardView({
 
   const stages = project?.stages ?? [];
   const lanes = useMemo(
-    () => computeLanes(groupBy, items ?? [], users, project),
-    [groupBy, items, users, project]
+    () => computeLanes(groupBy, items ?? [], users, project, customFields ?? []),
+    [groupBy, items, users, project, customFields]
   );
 
   const activeItem = items?.find((i) => i.id === activeId) ?? null;
@@ -120,10 +123,17 @@ export function BoardView({
     const patch: Record<string, unknown> = { stageId, rank };
     if (lane.field) patch[lane.field] = lane.value;
 
+    // Custom-field lane change (moving across custom-field swimlanes).
+    const currentFieldValue = lane.customFieldId
+      ? activeItem.fieldValues?.find((v) => v.fieldId === lane.customFieldId)?.value ?? null
+      : null;
+    const fieldChanged = Boolean(lane.customFieldId) && currentFieldValue !== lane.value;
+
     // Skip no-op.
     const unchanged =
       activeItem.stageId === stageId &&
       activeItem.rank === rank &&
+      !fieldChanged &&
       (!lane.field || (activeItem as unknown as Record<string, unknown>)[lane.field] === lane.value);
     if (unchanged) return;
 
@@ -134,6 +144,9 @@ export function BoardView({
     mutate(key, optimistic, false);
     try {
       await api(`/api/items/${activeItem.id}`, "PATCH", patch);
+      if (fieldChanged && lane.customFieldId) {
+        await api(`/api/items/${activeItem.id}/fields`, "PUT", { fieldId: lane.customFieldId, value: lane.value ?? "" });
+      }
     } finally {
       mutate(key);
     }
@@ -274,7 +287,10 @@ function computeRank(list: WorkItem[], index: number): number {
 
 function patchToItem(item: WorkItem, patch: Record<string, unknown>, lane: Lane): Partial<WorkItem> {
   const out: Record<string, unknown> = { stageId: patch.stageId, rank: patch.rank };
-  if (lane.field === "assigneeId") {
+  if (lane.customFieldId) {
+    const others = (item.fieldValues ?? []).filter((v) => v.fieldId !== lane.customFieldId);
+    out.fieldValues = lane.value == null ? others : [...others, { id: "optimistic", fieldId: lane.customFieldId, value: lane.value }];
+  } else if (lane.field === "assigneeId") {
     out.assigneeId = lane.value;
     out.assignee = null; // assignee object refreshed on revalidate
   } else if (lane.field) {

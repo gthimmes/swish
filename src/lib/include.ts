@@ -31,6 +31,7 @@ export const itemListInclude = {
       blocker: { select: { id: true, key: true, stage: { select: { category: true } } } },
     },
   },
+  fieldValues: { select: { id: true, fieldId: true, value: true } },
 } as const;
 
 const depItemSelect = {

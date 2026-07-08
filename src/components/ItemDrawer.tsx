@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSWRConfig } from "swr";
 import { useWorkspace } from "./workspace";
 import { useItem, api } from "@/lib/client";
@@ -17,6 +17,7 @@ import { CustomFieldsSection } from "./CustomFields";
 export function ItemDrawer() {
   const { openItemId, openItem } = useWorkspace();
   const open = Boolean(openItemId);
+  const asideRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -25,6 +26,14 @@ export function ItemDrawer() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, openItem]);
+
+  // Move focus into the drawer when it opens (accessibility).
+  useEffect(() => {
+    if (open) {
+      const t = setTimeout(() => asideRef.current?.focus(), 60);
+      return () => clearTimeout(t);
+    }
+  }, [open, openItemId]);
 
   return (
     <>
@@ -37,7 +46,12 @@ export function ItemDrawer() {
         />
       )}
       <aside
-        className="fixed right-0 top-0 z-40 flex h-full w-full flex-col overflow-hidden shadow-2xl transition-transform duration-200 sm:w-[560px]"
+        ref={asideRef}
+        role="dialog"
+        aria-modal={open}
+        aria-label="Work item details"
+        tabIndex={-1}
+        className="fixed right-0 top-0 z-40 flex h-full w-full flex-col overflow-hidden shadow-2xl outline-none transition-transform duration-200 sm:w-[560px]"
         style={{
           background: "var(--bg)",
           borderLeft: "1px solid var(--border)",

@@ -202,13 +202,13 @@ export async function seedDatabase(prisma: PrismaClient) {
       criteria: [
         { text: "Given a card, when I drag it to another column, then its stage updates and persists", done: true },
         { text: "Cross-lane drag reassigns the grouped field (e.g. assignee)", done: true },
-        { text: "Intra-column reorder persistence has an automated test", done: false },
-        { text: "Keyboard-only drag has an automated test", done: false },
+        { text: "Intra-column reorder persistence has an automated test", done: true },
+        { text: "Keyboard-only drag has an automated test", done: true },
       ],
       tests: [
         { text: "E2E: drag card to another stage updates stage + persists on reload", status: "PASS" },
         { text: "E2E: move reflected in the detail drawer stage select", status: "PASS" },
-        { text: "E2E: reorder within a column persists after reload", status: "TODO" },
+        { text: "E2E: keyboard reorder within a column persists after reload", status: "PASS" },
       ],
     },
   });
@@ -1035,16 +1035,41 @@ export async function seedDatabase(prisma: PrismaClient) {
     },
   });
   await makeItem({
-    title: "Full keyboard navigation & a11y pass",
+    title: "Keyboard navigation & a11y pass",
     type: "STORY",
     priority: "MEDIUM",
-    stage: "Backlog",
-    assignee: null,
+    stage: "Done",
+    assignee: dax,
     estimate: 5,
     epicId: epicPolish.id,
     labels: ["frontend", "tech-debt"],
     rank: 1030,
-    description: "Roving focus on the board, ARIA roles, keyboard drag — WCAG-minded throughout.",
+    description: "Focus rings, accessible card labels, keyboard pick-up + within-column reorder, dialog drawer, aria-current nav.",
+    spec: {
+      status: "APPROVED",
+      problem: "A keyboard-first tool must actually be operable and legible to assistive tech.",
+      goals: "Visible focus rings; labelled focusable cards; Enter opens; keyboard drag; dialog semantics; aria-current.",
+      nonGoals: "Cross-column keyboard drag (needs a custom coordinate getter) — a follow-up.",
+      approach: ":focus-visible ring; card aria-labels + Enter-to-open; dnd-kit Space pick-up; drawer role=dialog + focus.",
+      criteria: [
+        { text: "Focus-visible rings and accessible card labels", done: true },
+        { text: "Enter opens a focused card; Space picks it up; within-column reorder persists", done: true },
+        { text: "Drawer is a modal dialog and takes focus; active nav uses aria-current", done: true },
+      ],
+      tests: [{ text: "E2E: focus/label, Enter opens, keyboard reorder, aria-current, dialog", status: "PASS" }],
+    },
+  });
+  await makeItem({
+    title: "Cross-column keyboard drag",
+    type: "STORY",
+    priority: "LOW",
+    stage: "Backlog",
+    assignee: null,
+    estimate: 3,
+    epicId: epicPolish.id,
+    labels: ["frontend"],
+    rank: 1035,
+    description: "A custom dnd-kit coordinate getter so arrow keys move a card between columns, not just within one.",
   });
   await makeItem({
     title: "Custom fields per project",

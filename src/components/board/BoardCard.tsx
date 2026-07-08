@@ -18,6 +18,11 @@ export function BoardCard({
 }) {
   const sortable = useSortable({ id: item.id, data: { item } });
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = sortable;
+  // Separate dnd-kit's key handler so we can add Enter-to-open without clobbering it.
+  const { onKeyDown: dndKeyDown, ...restListeners } = (overlay ? {} : listeners ?? {}) as {
+    onKeyDown?: (e: React.KeyboardEvent) => void;
+    [k: string]: unknown;
+  };
 
   const style = {
     transform: CSS.Translate.toString(transform),
@@ -33,10 +38,20 @@ export function BoardCard({
     <div
       ref={overlay ? undefined : setNodeRef}
       {...(overlay ? {} : attributes)}
-      {...(overlay ? {} : listeners)}
+      {...restListeners}
+      aria-label={`${item.key}: ${item.title}. ${blocked ? "Blocked. " : ""}Press space to pick up, arrow keys to move, space to drop, or enter to open.`}
       data-testid="board-card"
       data-key={item.key}
       onClick={() => onOpen?.(item.id)}
+      onKeyDown={(e) => {
+        // Enter opens the card; Space (and everything else) goes to dnd-kit.
+        if (e.key === "Enter") {
+          e.preventDefault();
+          onOpen?.(item.id);
+          return;
+        }
+        dndKeyDown?.(e);
+      }}
       className="card group cursor-pointer p-2.5 text-left transition-shadow hover:border-[var(--border-strong)]"
       style={{
         ...(overlay ? {} : style),

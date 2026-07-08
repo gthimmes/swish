@@ -42,7 +42,11 @@ export function BoardView({
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+      // Space picks up / drops; Enter is left free to open the focused card.
+      keyboardCodes: { start: ["Space"], cancel: ["Escape"], end: ["Space"] },
+    })
   );
 
   const stages = project?.stages ?? [];
@@ -96,11 +100,19 @@ export function BoardView({
     const lane = lanes.find((l) => l.key === laneKey) ?? lanes[0];
 
     // Ordered target list excluding the active card.
-    const targetList = (grid.get(targetContainer) ?? []).filter((i) => i.id !== activeItem.id);
+    const originalList = grid.get(targetContainer) ?? [];
+    const targetList = originalList.filter((i) => i.id !== activeItem.id);
     let index = targetList.length;
     if (!overId.includes("::")) {
-      const pos = targetList.findIndex((i) => i.id === overId);
-      if (pos !== -1) index = pos;
+      const overIdx = targetList.findIndex((i) => i.id === overId);
+      if (overIdx !== -1) {
+        // When reordering within the same column and moving DOWN (active was
+        // originally above the over item), insert after it; otherwise before.
+        const activeOrig = originalList.findIndex((i) => i.id === activeItem.id);
+        const overOrig = originalList.findIndex((i) => i.id === overId);
+        const movingDown = activeOrig !== -1 && activeOrig < overOrig;
+        index = movingDown ? overIdx + 1 : overIdx;
+      }
     }
     const rank = computeRank(targetList, index);
 
@@ -210,6 +222,8 @@ function Column({
       )}
       <div
         ref={setNodeRef}
+        role="group"
+        aria-label={`${stage.name}${showLaneHeaders ? ` — ${lane.label}` : ""}, ${cards.length} item${cards.length === 1 ? "" : "s"}`}
         data-testid="column"
         data-stage={stage.name}
         data-stage-id={stage.id}

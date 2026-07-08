@@ -1097,6 +1097,29 @@ export async function seedDatabase(prisma: PrismaClient) {
     },
   });
   await makeItem({
+    title: "Filter items by a custom field",
+    type: "TASK",
+    priority: "LOW",
+    stage: "Done",
+    assignee: glenn,
+    estimate: 2,
+    epicId: epicPolish.id,
+    labels: ["frontend", "backend"],
+    rank: 1037,
+    description: "Filter the board and backlog by a custom SELECT field value (server-side, composable with other filters).",
+    spec: {
+      status: "APPROVED",
+      problem: "Grouping by a custom field shipped; teams also want to filter to a single field value.",
+      goals: "A select per custom field in the Filters bar; server-side AND filtering across fields + built-ins.",
+      approach: "items API reads field_<id> params → fieldValues.some conditions; FilterState carries a fields map.",
+      criteria: [
+        { text: "A select per custom field appears in Filters", done: true },
+        { text: "Filtering narrows the board and backlog server-side", done: true },
+      ],
+      tests: [{ text: "E2E: filter backlog by Team=Frontend → one row", status: "PASS" }],
+    },
+  });
+  await makeItem({
     title: "Custom fields per project",
     type: "STORY",
     priority: "MEDIUM",

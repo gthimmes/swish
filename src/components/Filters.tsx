@@ -1,7 +1,10 @@
 "use client";
 
+import useSWR from "swr";
 import { useWorkspace } from "./workspace";
+import { fetcher } from "@/lib/client";
 import { ITEM_TYPES, PRIORITIES, TYPE_META, PRIORITY_META } from "@/lib/enums";
+import type { CustomField } from "@/lib/types";
 
 export type FilterState = {
   q: string;
@@ -9,9 +12,10 @@ export type FilterState = {
   type: string;
   priority: string;
   labelId: string;
+  fields: Record<string, string>; // custom field id -> value
 };
 
-export const EMPTY_FILTERS: FilterState = { q: "", assigneeId: "", type: "", priority: "", labelId: "" };
+export const EMPTY_FILTERS: FilterState = { q: "", assigneeId: "", type: "", priority: "", labelId: "", fields: {} };
 
 export function filtersToParams(f: FilterState): Record<string, string> {
   const p: Record<string, string> = {};
@@ -20,11 +24,14 @@ export function filtersToParams(f: FilterState): Record<string, string> {
   if (f.type) p.type = f.type;
   if (f.priority) p.priority = f.priority;
   if (f.labelId) p.labelId = f.labelId;
+  for (const [fid, val] of Object.entries(f.fields ?? {})) {
+    if (val) p[`field_${fid}`] = val;
+  }
   return p;
 }
 
 export function hasActiveFilters(f: FilterState) {
-  return Boolean(f.q || f.assigneeId || f.type || f.priority || f.labelId);
+  return Boolean(f.q || f.assigneeId || f.type || f.priority || f.labelId || Object.values(f.fields ?? {}).some(Boolean));
 }
 
 export function Filters({
@@ -36,6 +43,15 @@ export function Filters({
 }) {
   const { users, project } = useWorkspace();
   const set = (patch: Partial<FilterState>) => onChange({ ...value, ...patch });
+  const { data: fields } = useSWR<CustomField[]>(project ? `/api/projects/${project.id}/fields` : null, fetcher);
+  const selectFields = (fields ?? []).filter((f) => f.type === "SELECT");
+
+  function setField(fid: string, val: string) {
+    const next = { ...(value.fields ?? {}) };
+    if (val) next[fid] = val;
+    else delete next[fid];
+    set({ fields: next });
+  }
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -89,6 +105,32 @@ export function Filters({
           ))}
         </Select>
       )}
+
+      {selectFields.map((f) => {
+        let options: string[] = [];
+        try {
+          options = JSON.parse(f.options);
+        } catch {
+          options = [];
+        }
+        const testid = `filter-field-${f.name.toLowerCase().replace(/\s+/g, "-")}`;
+        return (
+          <Select
+            key={f.id}
+            value={value.fields?.[f.id] ?? ""}
+            onChange={(v) => setField(f.id, v)}
+            testid={testid}
+            label={f.name}
+          >
+            <option value="">All {f.name}</option>
+            {options.map((o) => (
+              <option key={o} value={o}>
+                {o}
+              </option>
+            ))}
+          </Select>
+        );
+      })}
 
       {hasActiveFilters(value) && (
         <button className="btn btn-ghost text-xs" data-testid="filter-clear" onClick={() => onChange(EMPTY_FILTERS)}>

@@ -26,6 +26,15 @@ export async function GET(req: Request) {
       { description: { contains: q } },
     ];
 
+  // Custom-field filters: field_<id>=value (AND across fields).
+  const fieldConds: unknown[] = [];
+  for (const [k, v] of url.searchParams) {
+    if (k.startsWith("field_") && v) {
+      fieldConds.push({ fieldValues: { some: { fieldId: k.slice("field_".length), value: v } } });
+    }
+  }
+  if (fieldConds.length) where.AND = fieldConds;
+
   return handle(() =>
     prisma.workItem.findMany({
       where,

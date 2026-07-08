@@ -35,6 +35,14 @@ test.describe("Custom fields", () => {
     await expect(page.getByTestId("field-team")).toHaveValue("Platform");
   });
 
+  test("filters the backlog by a custom field", async ({ page }) => {
+    await page.goto("/backlog");
+    await expect(page.getByTestId("backlog-table")).toBeVisible();
+    await page.getByTestId("filter-field-team").selectOption("Frontend");
+    await expect(page.getByTestId("backlog-row")).toHaveCount(1);
+    await expect(page.locator('[data-testid="backlog-row"][data-key="SWISH-3"]')).toBeVisible();
+  });
+
   test("groups the board by a custom select field", async ({ page }) => {
     await page.goto("/board");
     await expect(page.getByTestId("board")).toBeVisible();

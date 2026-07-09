@@ -833,14 +833,25 @@ export async function seedDatabase(prisma: PrismaClient) {
   await makeItem({
     title: "Dependency arrows on the timeline",
     type: "STORY",
-    priority: "LOW",
-    stage: "Backlog",
-    assignee: null,
+    priority: "MEDIUM",
+    stage: "Done",
+    assignee: dax,
     estimate: 3,
     epicId: epicPlanning.id,
     labels: ["frontend"],
     rank: 828,
-    description: "Draw actual connector lines between blocker and blocked bars on the timeline.",
+    description: "Curved SVG connector lines from blocker to blocked bars on the Timeline (measured overlay).",
+    spec: {
+      status: "APPROVED",
+      problem: "The timeline flagged blocked items but didn't show which item was blocking which.",
+      goals: "Draw an arrow from each blocker bar to the bar it blocks (when both are scheduled).",
+      approach: "Measure bar rects into an absolute SVG overlay; a cubic path + arrowhead per edge; remeasure on resize.",
+      criteria: [
+        { text: "An arrow connects a blocker bar to the bar it blocks", done: true },
+        { text: "Only edges where both endpoints are scheduled are drawn", done: true },
+      ],
+      tests: [{ text: "E2E: a dependency arrow renders on the timeline", status: "PASS" }],
+    },
   });
   await makeItem({
     title: "Cycle analytics: burndown & velocity",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useWorkspace } from "@/components/workspace";
 import { useItems } from "@/lib/client";
 import { PageHeader } from "@/components/PageHeader";
@@ -73,13 +73,58 @@ export default function TimelinePage() {
 
     const nowLeft = ((Date.now() - min) / total) * 100;
 
-    return { groups, min, total, months, nowLeft };
+    // dependency edges where BOTH endpoints are scheduled (have bars)
+    const scheduledIds = new Set(scheduled.map((i) => i.id));
+    const depEdges: { blockerId: string; blockedId: string }[] = [];
+    for (const it of scheduled) {
+      for (const b of it.blockedBy ?? []) {
+        if (scheduledIds.has(b.blocker.id)) depEdges.push({ blockerId: b.blocker.id, blockedId: it.id });
+      }
+    }
+
+    return { groups, min, total, months, nowLeft, depEdges };
   }, [items]);
 
   function pct(ms: number) {
     if (!model) return 0;
     return Math.max(0, Math.min(100, ((ms - model.min) / model.total) * 100));
   }
+
+  // Measure bar positions and compute dependency connector lines.
+  const trackRef = useRef<HTMLDivElement>(null);
+  const barRefs = useRef<Map<string, HTMLElement>>(new Map());
+  const [lines, setLines] = useState<{ id: string; x1: number; y1: number; x2: number; y2: number }[]>([]);
+
+  useEffect(() => {
+    if (!model) return;
+    function measure() {
+      const track = trackRef.current;
+      if (!track) return;
+      const base = track.getBoundingClientRect();
+      const next: { id: string; x1: number; y1: number; x2: number; y2: number }[] = [];
+      for (const e of model!.depEdges) {
+        const from = barRefs.current.get(e.blockerId);
+        const to = barRefs.current.get(e.blockedId);
+        if (!from || !to) continue;
+        const fr = from.getBoundingClientRect();
+        const tr = to.getBoundingClientRect();
+        next.push({
+          id: `${e.blockerId}->${e.blockedId}`,
+          x1: fr.left - base.left + fr.width / 2,
+          y1: fr.top - base.top + fr.height,
+          x2: tr.left - base.left + tr.width / 2,
+          y2: tr.top - base.top,
+        });
+      }
+      setLines(next);
+    }
+    const raf = requestAnimationFrame(measure);
+    window.addEventListener("resize", measure);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", measure);
+    };
+  }, [model, items]);
 
   return (
     <>
@@ -104,7 +149,32 @@ export default function TimelinePage() {
               ))}
             </div>
 
-            <div className="relative">
+            <div className="relative" ref={trackRef}>
+              {/* Dependency connector lines (blocker → blocked) */}
+              {lines.length > 0 && (
+                <svg className="pointer-events-none absolute inset-0 z-20 h-full w-full overflow-visible" data-testid="dep-arrows">
+                  <defs>
+                    <marker id="dep-arrowhead" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+                      <path d="M0,0 L6,3 L0,6 Z" fill="#ef4444" />
+                    </marker>
+                  </defs>
+                  {lines.map((ln) => {
+                    const midY = (ln.y1 + ln.y2) / 2;
+                    return (
+                      <path
+                        key={ln.id}
+                        d={`M ${ln.x1} ${ln.y1} C ${ln.x1} ${midY}, ${ln.x2} ${midY}, ${ln.x2} ${ln.y2}`}
+                        fill="none"
+                        stroke="#ef4444"
+                        strokeWidth={1.5}
+                        strokeOpacity={0.7}
+                        markerEnd="url(#dep-arrowhead)"
+                        data-testid="dep-arrow"
+                      />
+                    );
+                  })}
+                </svg>
+              )}
               {/* Today line spanning all rows */}
               {model.nowLeft >= 0 && model.nowLeft <= 100 && (
                 <div
@@ -142,6 +212,10 @@ export default function TimelinePage() {
                             </button>
                             <div className="relative h-6 flex-1">
                               <button
+                                ref={(el) => {
+                                  if (el) barRefs.current.set(it.id, el);
+                                  else barRefs.current.delete(it.id);
+                                }}
                                 className="absolute top-1 h-4 rounded"
                                 style={{
                                   left: `${left}%`,

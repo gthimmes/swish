@@ -9,6 +9,13 @@ test.describe("Timeline & dates", () => {
     await expect(page.getByTestId("timeline-today")).toBeVisible();
   });
 
+  test("draws dependency arrows between scheduled bars", async ({ page }) => {
+    await page.goto("/timeline");
+    await page.getByTestId("timeline-bar").first().waitFor();
+    // SWISH-22 (auth) blocks SWISH-28 (AI criteria); both are scheduled.
+    await expect(page.getByTestId("dep-arrow").first()).toBeVisible();
+  });
+
   test("flags an overdue item", async ({ page }) => {
     await page.goto("/timeline");
     // SWISH-20 (bug, In Progress) is seeded with a past due date.

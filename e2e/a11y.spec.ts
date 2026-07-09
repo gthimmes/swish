@@ -47,6 +47,25 @@ test.describe("Keyboard & accessibility", () => {
     );
   });
 
+  test("keyboard drag moves a card to the next column", async ({ page }) => {
+    await page.goto("/board");
+    await expect(page.getByTestId("board")).toBeVisible();
+    const card = page.locator('[data-stage="Backlog"] [data-testid="board-card"]').first();
+    const key = await card.getAttribute("data-key");
+    await card.focus();
+    await page.keyboard.press("Space"); // pick up
+    await page.waitForTimeout(150);
+    await page.keyboard.press("ArrowRight"); // move to the next column
+    await page.waitForTimeout(150);
+    await page.keyboard.press("Space"); // drop
+    await page.waitForTimeout(200);
+    await expect(page.locator(`[data-stage="Spec"] [data-key="${key}"]`)).toBeVisible();
+    // persists
+    await page.reload();
+    await expect(page.getByTestId("board")).toBeVisible();
+    await expect(page.locator(`[data-stage="Spec"] [data-key="${key}"]`)).toBeVisible();
+  });
+
   test("active nav link is marked aria-current", async ({ page }) => {
     await page.goto("/backlog");
     await expect(page.getByTestId("backlog-table")).toBeVisible();

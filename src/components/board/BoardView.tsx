@@ -12,7 +12,8 @@ import {
   type DragStartEvent,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { multiColumnCoordinateGetter } from "@/lib/keyboardCoordinates";
 import { useDroppable } from "@dnd-kit/core";
 import { useWorkspace } from "@/components/workspace";
 import { useItems, itemsKey, api, fetcher } from "@/lib/client";
@@ -46,7 +47,7 @@ export function BoardView({
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
+      coordinateGetter: multiColumnCoordinateGetter,
       // Space picks up / drops; Enter is left free to open the focused card.
       keyboardCodes: { start: ["Space"], cancel: ["Escape"], end: ["Space"] },
     })

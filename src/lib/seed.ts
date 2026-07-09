@@ -1062,14 +1062,25 @@ export async function seedDatabase(prisma: PrismaClient) {
   await makeItem({
     title: "Cross-column keyboard drag",
     type: "STORY",
-    priority: "LOW",
-    stage: "Backlog",
-    assignee: null,
+    priority: "MEDIUM",
+    stage: "Done",
+    assignee: dax,
     estimate: 3,
     epicId: epicPolish.id,
     labels: ["frontend"],
     rank: 1035,
-    description: "A custom dnd-kit coordinate getter so arrow keys move a card between columns, not just within one.",
+    description: "A custom dnd-kit coordinate getter so arrow keys move a picked-up card between columns, not just within one.",
+    spec: {
+      status: "APPROVED",
+      problem: "Keyboard drag only reordered within a column; keyboard users couldn't change a card's stage.",
+      goals: "Arrow keys move a picked-up card between columns (and lanes); within-column reorder still works.",
+      approach: "A multi-container KeyboardCoordinateGetter that closest-corners to droppables in the pressed direction.",
+      criteria: [
+        { text: "ArrowRight/Left move a picked-up card between columns", done: true },
+        { text: "Within-column reorder still works; the move persists", done: true },
+      ],
+      tests: [{ text: "E2E: keyboard move to next column persists; within-column reorder intact", status: "PASS" }],
+    },
   });
   await makeItem({
     title: "Group the board by a custom field",

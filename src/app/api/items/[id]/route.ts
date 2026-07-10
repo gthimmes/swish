@@ -46,7 +46,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
       include: itemDetailInclude,
     });
 
-    // Activity trail for stage moves.
+    // Activity trail + timestamped transition history for stage moves.
     if (body.stageId && body.stageId !== existing.stageId) {
       await prisma.activity.create({
         data: {
@@ -54,6 +54,9 @@ export async function PATCH(req: Request, { params }: Ctx) {
           kind: "event",
           body: `moved from ${existing.stage.name} to ${item.stage.name}`,
         },
+      });
+      await prisma.stageTransition.create({
+        data: { workItemId: id, fromStageId: existing.stageId, toStageId: body.stageId },
       });
     }
     return item;

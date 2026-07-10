@@ -136,15 +136,30 @@ model WorkItem {
 
   fieldValues CustomFieldValue[]
 
-  labels   Label[]
-  spec     Spec?
-  activity Activity[]
+  labels      Label[]
+  spec        Spec?
+  activity    Activity[]
+  transitions StageTransition[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([projectId])
   @@index([stageId])
+}
+
+// Timestamped history of stage moves — the substrate for flow metrics
+// (cycle time, WIP aging, throughput). One row per move; fromStageId is
+// null for the item's initial placement.
+model StageTransition {
+  id          String   @id @default(cuid())
+  workItemId  String
+  workItem    WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  fromStageId String?
+  toStageId   String
+  createdAt   DateTime @default(now())
+
+  @@index([workItemId])
 }
 
 model Dependency {

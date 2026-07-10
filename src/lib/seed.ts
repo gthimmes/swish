@@ -896,13 +896,30 @@ export async function seedDatabase(prisma: PrismaClient) {
     title: "Flow metrics: cycle time, WIP aging & throughput",
     type: "STORY",
     priority: "LOW",
-    stage: "Backlog",
-    assignee: null,
+    stage: "Done",
+    assignee: dax,
     estimate: 5,
     epicId: epicPlanning.id,
     labels: ["frontend", "backend"],
     rank: 840,
-    description: "Cycle time and WIP aging need historical stage-transition timestamps — not yet captured.",
+    description: "A Flow section on Insights: median/85th-percentile cycle time, weekly throughput, and a WIP-aging list — all computed from a new timestamped stage-transition history.",
+    spec: {
+      status: "APPROVED",
+      problem: "Teams can't see their flow health: how long work actually takes (cycle time), what's silently getting stale (WIP aging), or whether delivery is steady (throughput). None of it was answerable because stage moves weren't recorded with timestamps.",
+      goals: "Persist every stage move as a StageTransition (with the initial placement). From that history compute median & 85th-percentile cycle time, distinct items completed per week, and per-item WIP age. Surface all three in a Flow section on Insights.",
+      nonGoals: "Configurable definitions of 'started'/'completed' or per-assignee flow — a v2. Cumulative-flow diagrams are out of scope.",
+      approach: "New StageTransition model written on item create and on every stage change. A GET /projects/:id/flow endpoint runs a pure computeFlowMetrics(items, stages, transitions, now). Cycle time spans first IN_PROGRESS entry → first DONE entry; WIP age is time in the current IN_PROGRESS stage; throughput buckets DONE transitions by ISO week. The seed backfills a plausible, deterministic history so the metrics are populated.",
+      criteria: [
+        { text: "Stage moves and item creation write a timestamped StageTransition", done: true },
+        { text: "Cycle time shows a median and 85th percentile over completed items", done: true },
+        { text: "Throughput charts items completed per week", done: true },
+        { text: "WIP aging lists in-progress items by time in their current stage", done: true },
+      ],
+      tests: [
+        { text: "API: GET /projects/:id/flow returns cycle-time median/p85, weekly throughput, and WIP-aging rows from the seeded history", status: "PASS" },
+        { text: "E2E: the Flow section on Insights renders cycle-time median, throughput bars, and WIP-aging rows", status: "PASS" },
+      ],
+    },
   });
   await makeItem({
     title: "Insights dashboard (distribution, throughput, spec coverage)",
@@ -1302,6 +1319,49 @@ export async function seedDatabase(prisma: PrismaClient) {
       },
     });
   }
+
+  // ---- Backfill stage-transition history so flow metrics have real data ----
+  // Demo fixture: synthesize a plausible, deterministic path for each item so
+  // cycle time, WIP aging, and throughput are populated. Timestamps are relative
+  // to "now" at seed time, so the data always lands in the recent window.
+  const now = Date.now();
+  const DAY = 86_400_000;
+  const backlogStage = byStage["Backlog"];
+  const inProgStage = byStage["In Progress"];
+  const flowItems = await prisma.workItem.findMany({
+    where: { projectId: project.id },
+    select: { id: true, key: true, type: true, stageId: true, stage: { select: { category: true } } },
+  });
+  const transitionRows: { workItemId: string; fromStageId: string | null; toStageId: string; createdAt: Date }[] = [];
+  for (const it of flowItems) {
+    if (it.type === "EPIC") continue;
+    const n = parseInt(it.key.split("-")[1] || "0", 10);
+    const cat = it.stage.category;
+
+    if (cat === "DONE") {
+      const doneDaysAgo = 2 + (n % 33); // spread completions across ~5 weeks
+      const cycleDays = 4 + (n % 8); // 4–11 day cycle time
+      const startDaysAgo = doneDaysAgo + cycleDays;
+      const createdDaysAgo = startDaysAgo + 3 + (n % 5);
+      transitionRows.push(
+        { workItemId: it.id, fromStageId: null, toStageId: backlogStage.id, createdAt: new Date(now - createdDaysAgo * DAY) },
+        { workItemId: it.id, fromStageId: backlogStage.id, toStageId: inProgStage.id, createdAt: new Date(now - startDaysAgo * DAY) },
+        { workItemId: it.id, fromStageId: inProgStage.id, toStageId: it.stageId, createdAt: new Date(now - doneDaysAgo * DAY) }
+      );
+    } else if (cat === "IN_PROGRESS") {
+      const enteredDaysAgo = 2 + (n % 12); // WIP age 2–13 days
+      const createdDaysAgo = enteredDaysAgo + 4 + (n % 6);
+      transitionRows.push(
+        { workItemId: it.id, fromStageId: null, toStageId: backlogStage.id, createdAt: new Date(now - createdDaysAgo * DAY) },
+        { workItemId: it.id, fromStageId: backlogStage.id, toStageId: it.stageId, createdAt: new Date(now - enteredDaysAgo * DAY) }
+      );
+    } else {
+      // Backlog: just the initial placement.
+      const createdDaysAgo = 1 + (n % 20);
+      transitionRows.push({ workItemId: it.id, fromStageId: null, toStageId: it.stageId, createdAt: new Date(now - createdDaysAgo * DAY) });
+    }
+  }
+  await prisma.stageTransition.createMany({ data: transitionRows });
 
   await prisma.project.update({ where: { id: project.id }, data: { seq } });
 

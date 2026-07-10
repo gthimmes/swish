@@ -1,11 +1,13 @@
 "use client";
 
 import { useMemo } from "react";
+import useSWR from "swr";
 import { useWorkspace } from "@/components/workspace";
-import { useItems } from "@/lib/client";
+import { useItems, fetcher } from "@/lib/client";
 import { PageHeader } from "@/components/PageHeader";
 import { PRIORITIES, PRIORITY_META, ITEM_TYPES, TYPE_META } from "@/lib/enums";
 import type { WorkItem } from "@/lib/types";
+import type { FlowMetrics } from "@/lib/flow";
 
 export default function InsightsPage() {
   const { project } = useWorkspace();
@@ -17,6 +19,7 @@ export default function InsightsPage() {
   );
 
   const m = useMemo(() => computeMetrics(items ?? [], stages), [items, stages]);
+  const { data: flow } = useSWR<FlowMetrics>(project ? `/api/projects/${project.id}/flow` : null, fetcher);
 
   return (
     <>
@@ -95,9 +98,102 @@ export default function InsightsPage() {
               )}
             </Panel>
           </div>
+
+          {/* Flow metrics — derived from stage-transition history */}
+          {flow && (
+            <>
+              <h2 className="mt-2 text-sm font-semibold" style={{ color: "var(--text-dim)" }} data-testid="flow-heading">
+                Flow
+              </h2>
+              <div className="grid gap-4 md:grid-cols-2" data-testid="flow-section">
+                <Panel title="Cycle time" testid="chart-cycletime">
+                  {flow.cycleTime.count === 0 ? (
+                    <p className="text-sm" style={{ color: "var(--text-faint)" }}>
+                      No completed work yet — cycle time appears once items reach Done.
+                    </p>
+                  ) : (
+                    <div className="flex items-end gap-6">
+                      <div>
+                        <div className="text-3xl font-semibold tabular-nums" data-testid="cycletime-median">
+                          {flow.cycleTime.medianDays}
+                          <span className="ml-1 text-sm font-normal" style={{ color: "var(--text-dim)" }}>
+                            days median
+                          </span>
+                        </div>
+                        <div className="mt-1 text-xs" style={{ color: "var(--text-faint)" }}>
+                          85th percentile {flow.cycleTime.p85Days} days · {flow.cycleTime.count} items
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </Panel>
+
+                <Panel title="Throughput (items done / week)" testid="chart-throughput">
+                  <ThroughputChart weeks={flow.throughput.weeks} />
+                  <div className="mt-2 text-xs" style={{ color: "var(--text-faint)" }}>
+                    {flow.throughput.total} completed in the last {flow.throughput.weeks.length} weeks
+                  </div>
+                </Panel>
+
+                <Panel title={`WIP aging (${flow.wip.count} in progress)`} testid="chart-wipaging">
+                  {flow.wip.items.length === 0 ? (
+                    <p className="text-sm" style={{ color: "var(--text-faint)" }}>
+                      Nothing in progress right now.
+                    </p>
+                  ) : (
+                    <ul className="flex flex-col gap-1.5">
+                      {flow.wip.items.slice(0, 8).map((w) => (
+                        <li key={w.key} className="flex items-center gap-2 text-sm" data-testid="wipaging-row">
+                          <span className="font-mono text-[11px]" style={{ color: "var(--text-faint)" }}>
+                            {w.key}
+                          </span>
+                          <span className="truncate" style={{ maxWidth: 200 }}>
+                            {w.title}
+                          </span>
+                          <span className="chip ml-auto" style={{ color: "var(--text-dim)" }}>
+                            {w.stage}
+                          </span>
+                          <span
+                            className="w-16 text-right tabular-nums"
+                            style={{ color: w.ageDays >= 10 ? "#ef4444" : "var(--text-dim)" }}
+                          >
+                            {w.ageDays}d
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </Panel>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </>
+  );
+}
+
+function ThroughputChart({ weeks }: { weeks: { label: string; count: number }[] }) {
+  const max = Math.max(1, ...weeks.map((w) => w.count));
+  return (
+    <div className="flex items-end gap-2" style={{ height: 96 }}>
+      {weeks.map((w, i) => (
+        <div key={i} className="flex flex-1 flex-col items-center gap-1" data-testid="throughput-bar">
+          <span className="text-[11px] tabular-nums" style={{ color: "var(--text-dim)" }}>
+            {w.count}
+          </span>
+          <div className="flex w-full items-end" style={{ height: 60 }}>
+            <div
+              className="w-full rounded-t"
+              style={{ height: `${(w.count / max) * 100}%`, minHeight: w.count ? 4 : 0, background: "#3b82f6" }}
+            />
+          </div>
+          <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>
+            {w.label}
+          </span>
+        </div>
+      ))}
+    </div>
   );
 }
 

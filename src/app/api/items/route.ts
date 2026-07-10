@@ -91,6 +91,10 @@ export async function POST(req: Request) {
     await prisma.activity.create({
       data: { workItemId: item.id, kind: "event", body: `created ${item.key}` },
     });
+    // Seed the transition history with the item's initial placement.
+    await prisma.stageTransition.create({
+      data: { workItemId: item.id, fromStageId: null, toStageId: stageId },
+    });
     return item;
   });
 }

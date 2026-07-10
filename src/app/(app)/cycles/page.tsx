@@ -19,6 +19,17 @@ function cycleStatus(c: Cycle) {
   return { label: "Active", color: "#22c55e" };
 }
 
+type CycleStat = {
+  cycle: Cycle;
+  status: ReturnType<typeof cycleStatus>;
+  committed: number; // sum of estimate points assigned to the cycle
+  completed: number; // sum of estimate points in a DONE stage
+};
+
+function pts(items: WorkItem[]): number {
+  return items.reduce((sum, i) => sum + (i.estimate ?? 0), 0);
+}
+
 export default function CyclesPage() {
   const { project, openItem } = useWorkspace();
   const key = project ? `/api/projects/${project.id}/cycles` : null;
@@ -41,6 +52,25 @@ export default function CyclesPage() {
     return m;
   }, [items]);
 
+  // Per-cycle points (committed vs completed), ordered chronologically for the velocity chart.
+  const stats = useMemo<CycleStat[]>(() => {
+    return (cycles ?? [])
+      .map((c) => {
+        const cItems = byCycle.get(c.id) ?? [];
+        const doneItems = cItems.filter((i) => doneIds.has(i.stageId));
+        return { cycle: c, status: cycleStatus(c), committed: pts(cItems), completed: pts(doneItems) };
+      })
+      .sort((a, b) => new Date(a.cycle.startDate).getTime() - new Date(b.cycle.startDate).getTime());
+  }, [cycles, byCycle, doneIds]);
+
+  // Rolling velocity = mean completed points across Completed cycles (what to expect next cycle).
+  const velocity = useMemo(() => {
+    const done = stats.filter((s) => s.status.label === "Completed");
+    if (done.length === 0) return null;
+    const avg = done.reduce((sum, s) => sum + s.completed, 0) / done.length;
+    return { avg, n: done.length };
+  }, [stats]);
+
   const [creating, setCreating] = useState(false);
 
   async function remove(id: string) {
@@ -58,11 +88,15 @@ export default function CyclesPage() {
 
       <div className="flex-1 overflow-auto p-4">
         <div className="mx-auto flex max-w-3xl flex-col gap-4">
+          {stats.length > 0 && <VelocityPanel stats={stats} velocity={velocity} />}
+
           {(cycles ?? []).map((c) => {
             const cItems = byCycle.get(c.id) ?? [];
             const done = cItems.filter((i) => doneIds.has(i.stageId)).length;
             const pct = cItems.length ? Math.round((done / cItems.length) * 100) : 0;
             const status = cycleStatus(c);
+            const committedPts = pts(cItems);
+            const completedPts = pts(cItems.filter((i) => doneIds.has(i.stageId)));
             return (
               <section key={c.id} className="card p-4" data-testid="cycle" data-name={c.name}>
                 <div className="mb-2 flex items-center gap-2">
@@ -79,6 +113,12 @@ export default function CyclesPage() {
                   </span>
                   <span className="ml-auto text-xs tabular-nums" style={{ color: pct === 100 ? "#22c55e" : "var(--text-dim)" }}>
                     {done}/{cItems.length} done · {pct}%
+                    {committedPts > 0 && (
+                      <span data-testid="cycle-points">
+                        {" · "}
+                        {completedPts}/{committedPts} pts
+                      </span>
+                    )}
                   </span>
                   <button
                     className="btn btn-ghost px-2 py-0.5 text-xs"
@@ -143,6 +183,67 @@ export default function CyclesPage() {
         />
       )}
     </>
+  );
+}
+
+function VelocityPanel({
+  stats,
+  velocity,
+}: {
+  stats: CycleStat[];
+  velocity: { avg: number; n: number } | null;
+}) {
+  const max = Math.max(1, ...stats.map((s) => Math.max(s.committed, s.completed)));
+  return (
+    <section className="card p-4" data-testid="velocity-panel">
+      <div className="mb-3 flex items-center gap-2">
+        <h3 className="text-sm font-semibold">Velocity</h3>
+        {velocity ? (
+          <span className="chip" data-testid="velocity-average" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>
+            ~{Math.round(velocity.avg)} pts / cycle
+          </span>
+        ) : (
+          <span className="text-xs" style={{ color: "var(--text-faint)" }}>
+            No completed cycles yet
+          </span>
+        )}
+        <span className="ml-auto flex items-center gap-3 text-[11px]" style={{ color: "var(--text-faint)" }}>
+          <span className="flex items-center gap-1">
+            <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: "var(--bg-elev-2)" }} /> committed
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: "#22c55e" }} /> completed
+          </span>
+        </span>
+      </div>
+      <div className="flex items-end gap-3" style={{ height: 128 }}>
+        {stats.map((s) => {
+          const track = 96;
+          return (
+            <div key={s.cycle.id} className="flex flex-1 flex-col items-center gap-1" data-testid="velocity-bar" data-name={s.cycle.name}>
+              <span className="text-[11px] tabular-nums" style={{ color: "var(--text-dim)" }}>
+                {s.completed}
+              </span>
+              <div className="relative w-full max-w-14" style={{ height: track }}>
+                {/* committed track */}
+                <div
+                  className="absolute bottom-0 w-full rounded-t"
+                  style={{ height: `${(s.committed / max) * track}px`, background: "var(--bg-elev-2)" }}
+                />
+                {/* completed fill */}
+                <div
+                  className="absolute bottom-0 w-full rounded-t"
+                  style={{ height: `${(s.completed / max) * track}px`, background: "#22c55e" }}
+                />
+              </div>
+              <span className="w-full truncate text-center text-[10px]" style={{ color: "var(--text-faint)" }} title={s.cycle.name}>
+                {s.cycle.name}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 

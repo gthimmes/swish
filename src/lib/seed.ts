@@ -857,13 +857,26 @@ export async function seedDatabase(prisma: PrismaClient) {
     title: "Cycle analytics: burndown & velocity",
     type: "STORY",
     priority: "LOW",
-    stage: "Backlog",
-    assignee: null,
+    stage: "Done",
+    assignee: glenn,
     estimate: 3,
     epicId: epicPlanning.id,
     labels: ["frontend"],
     rank: 830,
-    description: "Charts for completed vs remaining and rolling velocity across cycles.",
+    description: "A Velocity panel on Cycles: committed vs completed points per cycle and a rolling velocity average for planning the next cycle.",
+    spec: {
+      status: "APPROVED",
+      problem: "Teams planning the next cycle need to know how much they actually finish per cycle — count-based progress hides that a cycle full of large items delivered less than its point commitment.",
+      goals: "Per-cycle committed vs completed points; a velocity bar chart across cycles ordered by date; a rolling velocity average over completed cycles to size the next commitment.",
+      nonGoals: "A time-series burndown line (remaining work per day) — that needs daily historical snapshots we don't yet capture. Tracked under Flow metrics alongside cycle time and WIP aging.",
+      approach: "Pure view-layer: sum item estimates by cycle membership and DONE-stage category, client-side on the Cycles page. No schema change. Committed = all points assigned; completed = points in a DONE stage; velocity = mean completed points across Completed cycles.",
+      criteria: [
+        { text: "Each cycle shows completed/committed points alongside its item count", done: true },
+        { text: "A velocity chart plots committed vs completed points per cycle in date order", done: true },
+        { text: "A rolling velocity average (pts/cycle) is shown across completed cycles", done: true },
+      ],
+      tests: [{ text: "E2E: velocity panel renders a bar per cycle and a pts/cycle average; cycle cards show points", status: "PASS" }],
+    },
   });
   await makeItem({
     title: "Flow metrics: cycle time, WIP aging & throughput",
@@ -1187,7 +1200,10 @@ export async function seedDatabase(prisma: PrismaClient) {
     });
   }
 
-  // Cycles: one completed, one active (contains the seed's "today" window).
+  // Cycles: two completed (for a velocity trend), one active (the seed's "today" window).
+  const sprint23 = await prisma.cycle.create({
+    data: { projectId: project.id, name: "Sprint 23", startDate: new Date("2026-06-01"), endDate: new Date("2026-06-14") },
+  });
   const sprint24 = await prisma.cycle.create({
     data: { projectId: project.id, name: "Sprint 24", startDate: new Date("2026-06-15"), endDate: new Date("2026-06-29") },
   });
@@ -1195,6 +1211,9 @@ export async function seedDatabase(prisma: PrismaClient) {
     data: { projectId: project.id, name: "Sprint 25", startDate: new Date("2026-06-30"), endDate: new Date("2026-07-14") },
   });
   const cycleAssign: Record<string, string> = {
+    "SWISH-4": sprint23.id,
+    "SWISH-5": sprint23.id,
+    "SWISH-6": sprint23.id,
     "SWISH-3": sprint24.id,
     "SWISH-7": sprint24.id,
     "SWISH-20": sprint25.id,

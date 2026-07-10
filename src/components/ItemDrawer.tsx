@@ -11,6 +11,7 @@ import { Avatar, LabelChip, TypeBadge } from "./ui";
 import { SpecEditor } from "./SpecEditor";
 import { ActivityThread } from "./Comments";
 import { AgentBriefButton } from "./AgentBrief";
+import { PrDraftButton } from "./PrDraft";
 import { DependenciesSection } from "./Dependencies";
 import { CustomFieldsSection } from "./CustomFields";
 
@@ -95,6 +96,7 @@ function DrawerContent({ id }: { id: string }) {
           {item.key}
         </span>
         <div className="ml-auto flex items-center gap-1">
+          <PrDraftButton item={item} />
           <AgentBriefButton item={item} />
           <DeleteButton
             onConfirm={async () => {

@@ -32,3 +32,28 @@ test.describe("Agent hand-off (AI-ready brief)", () => {
     await expect(page.getByTestId("agent-brief")).toContainText("No structured spec yet");
   });
 });
+
+test.describe("Spec → draft PR description", () => {
+  test("drafts a PR body with checklists from the spec", async ({ page }) => {
+    await page.goto("/board");
+    await openCard(page, "SWISH-3"); // approved spec with criteria + tests
+    await page.getByTestId("pr-draft-open").click();
+
+    const draft = page.getByTestId("pr-draft");
+    await expect(draft).toBeVisible();
+    await expect(draft).toContainText("SWISH-3:"); // suggested title
+    await expect(draft).toContainText("## Summary");
+    await expect(draft).toContainText("## Acceptance criteria");
+    await expect(draft).toContainText("## Test plan");
+    await expect(draft).toContainText("- [x]"); // a completed criterion renders checked
+    await expect(draft).toContainText("Closes SWISH-3");
+  });
+
+  test("copy confirms", async ({ page }) => {
+    await page.goto("/board");
+    await openCard(page, "SWISH-3");
+    await page.getByTestId("pr-draft-open").click();
+    await page.getByTestId("pr-draft-copy").click();
+    await expect(page.getByTestId("pr-draft-copy")).toHaveText("Copied!");
+  });
+});

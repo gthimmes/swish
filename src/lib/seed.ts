@@ -711,13 +711,27 @@ export async function seedDatabase(prisma: PrismaClient) {
     title: "Spec → draft PR description & checklist",
     type: "STORY",
     priority: "LOW",
-    stage: "Backlog",
-    assignee: null,
+    stage: "Done",
+    assignee: glenn,
     estimate: 3,
     epicId: epicAI.id,
-    labels: ["backend"],
+    labels: ["frontend"],
     rank: 740,
-    description: "Generate a PR body and a review checklist straight from the approved spec.",
+    description: "A 'Draft PR description' action on any item turns its spec into a ready-to-paste GitHub PR body — summary, implementation notes, and acceptance criteria + test plan as review checklists.",
+    spec: {
+      status: "APPROVED",
+      problem: "The spec already holds everything a PR should say — summary, approach, what 'done' means — but engineers retype it into the PR by hand, so the PR and the spec drift and reviewers get a thin description.",
+      goals: "One click on an item drafts a GitHub-flavored PR body: suggested title, summary (description + goals), implementation notes from the approach, and acceptance criteria + test plan rendered as checkboxes (checked when done/passing), plus a Closes reference. Copy or download.",
+      nonGoals: "Opening the PR on GitHub or pushing a branch — that needs the integrations track (GitHub two-way sync). This produces text you paste.",
+      approach: "Pure client-side templating: a buildPrDraft(item) alongside buildAgentBrief renders markdown from the item + spec. A PrDraftButton in the item drawer opens a modal to preview, copy, and download the body. No schema change, no network.",
+      criteria: [
+        { text: "Every item exposes a 'Draft PR description' action in its drawer", done: true },
+        { text: "The draft includes summary, implementation notes, and a Closes reference", done: true },
+        { text: "Acceptance criteria and test plan render as checklists (checked when done/passing)", done: true },
+        { text: "The body can be copied and downloaded as markdown", done: true },
+      ],
+      tests: [{ text: "E2E: open the PR draft, assert title/checklists/Closes render; download works", status: "PASS" }],
+    },
   });
 
   // ---- EPIC: Planning & insights ----

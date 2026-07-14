@@ -27,3 +27,13 @@ The same seed is what Playwright reseeds before each test (`e2e/fixtures.ts`). S
 - Prefer **data-driven assertions** — derive expected counts from the API via `e2e/helpers.ts` (`fetchItems`, `findUserId`) rather than hardcoding numbers, so the suite survives the roadmap growing.
 - Keep item-specific tests pinned to **stable, delivered items** (low SWISH-N keys), and add new/roadmap work at higher keys so those references don't shift.
 - After any board change, run `npm run test:e2e` and get back to green before considering the cycle done.
+
+## The test pyramid
+
+Three layers, each with its own runner. Pick the lowest layer that can catch the class of bug you care about.
+
+- **Unit** (`npm run test:unit`) — Vitest over `src/**/*.test.ts`. For **pure logic**: flow metrics (`flow.ts`), the agent-brief & PR-draft generators (`brief.ts`), swimlane grouping (`grouping.ts`), dates, enums, api helpers. Fast (<1s), no DB, no browser. New pure logic should get a unit test here.
+- **Integration** (`npm run test:integration`) — Vitest over `tests/integration/**/*.test.ts`. Imports the **API route handlers** and calls them with real `Request` objects against a dedicated migrated SQLite DB (`test-int.db`, provisioned in `tests/integration/global-setup.ts`). Each test reseeds via `resetDb()` (see `tests/integration/helpers.ts`). Use this for the API + DB contract: validation, persistence, cascades, and side effects like stage-move → `StageTransition` capture. Runs serially (shared DB).
+- **E2E** (`npm run test:e2e`) — Playwright over `e2e/`. Owns rendering, interaction, and full-stack flows. This layer owns UI/DOM behavior — there are deliberately **no React component unit tests**.
+
+`npm test` runs unit + integration together. Before calling a cycle done, the layers touched by the change must be green (and E2E after any board/UI change).

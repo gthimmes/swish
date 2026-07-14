@@ -1210,36 +1210,74 @@ export async function seedDatabase(prisma: PrismaClient) {
       tests: [{ text: "E2E: add/delete field, edit select + URL values, persistence", status: "PASS" }],
     },
   });
+  await makeItem({
+    title: "Test pyramid: Vitest unit + API integration harness",
+    type: "STORY",
+    priority: "HIGH",
+    stage: "Done",
+    assignee: glenn,
+    estimate: 5,
+    epicId: epicPolish.id,
+    labels: ["testing", "backend", "frontend"],
+    rank: 1050,
+    description: "Add the missing lower layers of the test pyramid: fast Vitest unit tests for the pure logic and an integration layer that exercises the API route handlers against a real (migrated + seeded) SQLite test database — complementing the existing Playwright E2E suite.",
+    spec: {
+      status: "APPROVED",
+      problem: "Coverage was E2E-only: correct at the surface but slow, and it left pure logic (flow metrics, spec/PR generators, grouping) and the API+DB contract without fast, focused tests. A regression in a metric or a route could only be caught by a 10-minute browser run.",
+      goals: "A Vitest 'unit' project over src/**/*.test.ts for pure modules, and an 'integration' project that imports route handlers and runs them against a dedicated test DB with per-test reseed. npm scripts for each layer.",
+      nonGoals: "React component/DOM unit tests — the E2E suite owns rendering and interaction. Swapping the E2E harness.",
+      approach: "vitest.config.ts defines two projects sharing the @ alias. Integration provisions test-int.db via `prisma migrate deploy` in globalSetup, points DATABASE_URL at it, and reseeds through seedDatabase() before each test; handlers are called with real Request objects and their NextResponse is read back.",
+      criteria: [
+        { text: "Unit tests cover flow metrics, agent-brief & PR-draft, grouping, dates, enums, and api helpers", done: true },
+        { text: "Integration tests drive items/specs/cycles/dependencies/fields/bulk routes against a real DB", done: true },
+        { text: "Integration tests assert stage-move → transition capture and the flow endpoint", done: true },
+        { text: "test / test:unit / test:integration scripts run green alongside test:e2e", done: true },
+      ],
+      tests: [
+        { text: "Unit: 46 Vitest tests across six pure modules pass", status: "PASS" },
+        { text: "Integration: route-handler tests against a seeded SQLite DB pass", status: "PASS" },
+        { text: "E2E: the full Playwright suite still passes", status: "PASS" },
+      ],
+    },
+  });
 
-  // Schedule a handful of items so the timeline is populated (fixed dates for
-  // deterministic tests; SWISH-20 is intentionally overdue).
-  const dateMap: Record<string, { start?: string; due?: string }> = {
-    "SWISH-3": { start: "2026-06-20", due: "2026-07-02" },
-    "SWISH-2": { start: "2026-06-25", due: "2026-07-18" },
-    "SWISH-20": { start: "2026-06-24", due: "2026-06-30" }, // overdue, not done
-    "SWISH-18": { start: "2026-07-01", due: "2026-07-11" },
-    "SWISH-22": { start: "2026-07-10", due: "2026-08-01" },
-    "SWISH-28": { start: "2026-07-08", due: "2026-07-22" },
+  // All schedule/cycle dates are relative to "now" at seed time so the board's
+  // "today" always sits inside the seeded window — overdue flags, the timeline's
+  // today line, and cycle status must not drift as the wall clock advances.
+  const DAY_MS = 86_400_000;
+  const today = Date.now();
+  const dayAt = (deltaDays: number) => new Date(today + deltaDays * DAY_MS);
+
+  // Schedule a handful of items so the timeline is populated. Offsets (in days
+  // from today) preserve the original layout: SWISH-20 is intentionally overdue.
+  const dateMap: Record<string, { start?: number; due?: number }> = {
+    "SWISH-3": { start: -19, due: -7 },
+    "SWISH-2": { start: -14, due: 9 },
+    "SWISH-20": { start: -15, due: -9 }, // overdue, not done
+    "SWISH-18": { start: -8, due: 2 },
+    "SWISH-22": { start: 1, due: 23 },
+    "SWISH-28": { start: -1, due: 13 },
   };
   for (const [key, d] of Object.entries(dateMap)) {
     await prisma.workItem.updateMany({
       where: { projectId: project.id, key },
       data: {
-        startDate: d.start ? new Date(d.start) : null,
-        dueDate: d.due ? new Date(d.due) : null,
+        startDate: d.start !== undefined ? dayAt(d.start) : null,
+        dueDate: d.due !== undefined ? dayAt(d.due) : null,
       },
     });
   }
 
-  // Cycles: two completed (for a velocity trend), one active (the seed's "today" window).
+  // Cycles: two completed (for a velocity trend), one active. The active sprint
+  // always contains today.
   const sprint23 = await prisma.cycle.create({
-    data: { projectId: project.id, name: "Sprint 23", startDate: new Date("2026-06-01"), endDate: new Date("2026-06-14") },
+    data: { projectId: project.id, name: "Sprint 23", startDate: dayAt(-35), endDate: dayAt(-22) },
   });
   const sprint24 = await prisma.cycle.create({
-    data: { projectId: project.id, name: "Sprint 24", startDate: new Date("2026-06-15"), endDate: new Date("2026-06-29") },
+    data: { projectId: project.id, name: "Sprint 24", startDate: dayAt(-21), endDate: dayAt(-8) },
   });
   const sprint25 = await prisma.cycle.create({
-    data: { projectId: project.id, name: "Sprint 25", startDate: new Date("2026-06-30"), endDate: new Date("2026-07-14") },
+    data: { projectId: project.id, name: "Sprint 25", startDate: dayAt(-6), endDate: dayAt(7) },
   });
   const cycleAssign: Record<string, string> = {
     "SWISH-4": sprint23.id,

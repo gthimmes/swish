@@ -3,8 +3,10 @@ import { defineConfig, devices } from "@playwright/test";
 /**
  * Playwright config for Swish E2E tests.
  * Reseeds the database before the run (globalSetup) and reuses a running dev
- * server if one is already up on :3000.
+ * server if one is already up on the target port (PORT env, default 3000).
  */
+const PORT = process.env.PORT ?? "3000";
+
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: false,
@@ -15,7 +17,7 @@ export default defineConfig({
   expect: { timeout: 7_000 },
   globalSetup: "./e2e/global-setup.ts",
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: `http://localhost:${PORT}`,
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     testIdAttribute: "data-testid",
@@ -28,7 +30,7 @@ export default defineConfig({
   ],
   webServer: {
     command: "npm run dev",
-    url: "http://localhost:3000",
+    url: `http://localhost:${PORT}`,
     reuseExistingServer: true,
     timeout: 60_000,
   },

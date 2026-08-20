@@ -29,7 +29,9 @@ export function Shortcuts() {
 
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
-      if (isTyping(e.target)) return;
+      // composedPath()[0] sees through shadow DOM (e.g. the help widget's
+      // search input), where e.target is retargeted to the host element.
+      if (isTyping(e.composedPath()[0] ?? e.target)) return;
 
       if (awaitingG) {
         awaitingG = false;

@@ -4,6 +4,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { ItemDrawer } from "@/components/ItemDrawer";
 import { Shortcuts } from "@/components/Shortcuts";
 import { CommandPalette } from "@/components/CommandPalette";
+import { HelpWidget } from "@/components/HelpWidget";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -15,6 +16,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <ItemDrawer />
           <Shortcuts />
           <CommandPalette />
+          <HelpWidget />
         </div>
       </WorkspaceProvider>
     </Suspense>
